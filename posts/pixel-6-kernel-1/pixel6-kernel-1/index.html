@@ -238,7 +238,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
     "keywords": ["Kernel","Pixel 6","Arm64 Mac Compile Kernel"],
     
     "mainEntityOfPage": "true",
-    "wordCount": "1437"
+    "wordCount": "1441"
   }]
   </script>
 
@@ -450,7 +450,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
   <div class="flex flex-row flex-wrap items-center">
     
     
-      <time datetime="2026-05-23T00:00:00&#43;00:00">May 23, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1437 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
+      <time datetime="2026-05-23T00:00:00&#43;00:00">May 23, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1441 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
     
 
     
@@ -534,9 +534,9 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
         <li><a href="#切换目标分支和提交">切换目标分支和提交</a></li>
       </ul>
     </li>
-    <li><a href="#下载交叉编译工具链">下载交叉编译工具链</a></li>
     <li><a href="#修改配置并编译内核">修改配置并编译内核</a>
       <ul>
+        <li><a href="#下载交叉编译工具链">下载交叉编译工具链</a></li>
         <li><a href="#手动修改内核配置">手动修改内核配置</a></li>
         <li><a href="#一键编译">一键编译</a></li>
         <li><a href="#编译报错解决">编译报错解决</a></li>
@@ -546,6 +546,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
     <li><a href="#making-boot-镜像">Making boot 镜像</a>
       <ul>
         <li><a href="#解包系统镜像">解包系统镜像</a></li>
+        <li><a href="#替换-kernel-并打包">替换 kernel 并打包</a></li>
       </ul>
     </li>
     <li><a href="#致谢">致谢</a></li>
@@ -576,9 +577,9 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
         <li><a href="#切换目标分支和提交">切换目标分支和提交</a></li>
       </ul>
     </li>
-    <li><a href="#下载交叉编译工具链">下载交叉编译工具链</a></li>
     <li><a href="#修改配置并编译内核">修改配置并编译内核</a>
       <ul>
+        <li><a href="#下载交叉编译工具链">下载交叉编译工具链</a></li>
         <li><a href="#手动修改内核配置">手动修改内核配置</a></li>
         <li><a href="#一键编译">一键编译</a></li>
         <li><a href="#编译报错解决">编译报错解决</a></li>
@@ -588,6 +589,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
     <li><a href="#making-boot-镜像">Making boot 镜像</a>
       <ul>
         <li><a href="#解包系统镜像">解包系统镜像</a></li>
+        <li><a href="#替换-kernel-并打包">替换 kernel 并打包</a></li>
       </ul>
     </li>
     <li><a href="#致谢">致谢</a></li>
@@ -819,7 +821,17 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
 </span></span><span style="display:flex;"><span>Updating files: 100% <span style="color:#f92672">(</span>6413/6413<span style="color:#f92672">)</span>, <span style="color:#66d9ef">done</span>.
 </span></span><span style="display:flex;"><span>HEAD is now at 12f3388846c3 ANDROID: ABI fixup <span style="color:#66d9ef">for</span> abi break in struct dst_ops</span></span></code></pre></div></div>
 
-<h2 class="relative group">下载交叉编译工具链
+<h2 class="relative group">修改配置并编译内核
+    <div id="修改配置并编译内核" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%bf%ae%e6%94%b9%e9%85%8d%e7%bd%ae%e5%b9%b6%e7%bc%96%e8%af%91%e5%86%85%e6%a0%b8" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">下载交叉编译工具链
     <div id="下载交叉编译工具链" class="anchor"></div>
     
     <span
@@ -827,7 +839,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
         <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%b8%8b%e8%bd%bd%e4%ba%a4%e5%8f%89%e7%bc%96%e8%af%91%e5%b7%a5%e5%85%b7%e9%93%be" aria-label="Anchor">#</a>
     </span>
     
-</h2>
+</h3>
 <p>commit 终于完了, 终于到了激动人心的编译时刻吗 ?</p>
 <p>转念一想, 还没有配置交叉编译工具 ~</p>
 <p>我选择使用 Google 官方的 LLVM  <del>(保持队形, 相信应该可以踩更少的坑)</del></p>
@@ -882,16 +894,6 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
 </span></span><span style="display:flex;"><span>Candidate multilib: x32;@mx32
 </span></span><span style="display:flex;"><span>Selected multilib: .;@m64</span></span></code></pre></div></div>
 <p>搞定, 下一步 &hellip;</p>
-
-<h2 class="relative group">修改配置并编译内核
-    <div id="修改配置并编译内核" class="anchor"></div>
-    
-    <span
-        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
-        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%bf%ae%e6%94%b9%e9%85%8d%e7%bd%ae%e5%b9%b6%e7%bc%96%e8%af%91%e5%86%85%e6%a0%b8" aria-label="Anchor">#</a>
-    </span>
-    
-</h2>
 
 <h3 class="relative group">手动修改内核配置
     <div id="手动修改内核配置" class="anchor"></div>
@@ -1105,6 +1107,16 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
 </span></span><span style="display:flex;"><span>VBMETA
 </span></span><span style="display:flex;"><span>sharkfall@Shark01:mk-boot% ls
 </span></span><span style="display:flex;"><span>boot.img	kernel</span></span></code></pre></div></div>
+
+<h3 class="relative group">替换 kernel 并打包
+    <div id="替换-kernel-并打包" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%9b%bf%e6%8d%a2-kernel-%e5%b9%b6%e6%89%93%e5%8c%85" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
 <p>然后替换 kernel 为我们编译的 Iamge, 需要先 lz4 压缩</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>sharkfall@Shark01:mk-boot% cp ../pixel-6-android14/out/arch/arm64/boot/Image ./
 </span></span><span style="display:flex;"><span>
