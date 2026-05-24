@@ -36,7 +36,7 @@
   
   
   
-  <link rel="canonical" href="http://localhost:1313/posts/pixel-6-kernel-1/pixel6-kernel-1/">
+  <link rel="canonical" href="http://localhost:1313/posts/pixel-6-kernel-1_%E5%89%AF%E6%9C%AC/pixel6-kernel-1/">
   
   
 
@@ -45,7 +45,7 @@
   
 
   
-  <meta property="og:url" content="http://localhost:1313/posts/pixel-6-kernel-1/pixel6-kernel-1/">
+  <meta property="og:url" content="http://localhost:1313/posts/pixel-6-kernel-1_%E5%89%AF%E6%9C%AC/pixel6-kernel-1/">
   <meta property="og:site_name" content="SharkFall&#39;s Blog">
   <meta property="og:title" content="Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1">
   <meta property="og:description" content="前情提要 # 关键词: Arm64 Mac 编译 Pixel 6 内核及内核模块 rwProcMem33, eBPF环境
@@ -224,7 +224,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
     "headline": "Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1",
     
     "inLanguage": "en-us",
-    "url" : "http://localhost:1313/posts/pixel-6-kernel-1/pixel6-kernel-1/",
+    "url" : "http://localhost:1313/posts/pixel-6-kernel-1_%E5%89%AF%E6%9C%AC/pixel6-kernel-1/",
     "author" : {
       "@type": "Person",
       "name": ""
@@ -238,7 +238,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
     "keywords": ["Kernel","Pixel 6","Arm64 Mac Compile Kernel"],
     
     "mainEntityOfPage": "true",
-    "wordCount": "1434"
+    "wordCount": "1441"
   }]
   </script>
 
@@ -444,7 +444,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
   <div class="flex flex-row flex-wrap items-center">
     
     
-      <time datetime="2026-05-23T00:00:00&#43;00:00">May 23, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1434 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
+      <time datetime="2026-05-23T00:00:00&#43;00:00">May 23, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1441 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
     
 
     
@@ -899,6 +899,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
     
 </h3>
 <p><del>到这一步, 如果出现奇奇怪怪的问题, 可以尝试重启大法, 重启 Docker 容器即可</del></p>
+<p><del>可以备份一份代码, 以防万一, 不过应该 git 也足够了</del>, <code>cp -r gs pixel-6-android14</code></p>
 <p>看到默认 config 是支持模块的 (这里只是看一下, 不支持也没关系, 后面可以改)</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@aa0c5f68153d:/workplace/pixel-6-android14# cat arch/arm64/configs/defconfig | grep CONFIG_MODULE 
 </span></span><span style="display:flex;"><span>CONFIG_MODULES<span style="color:#f92672">=</span>y
@@ -931,8 +932,7 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
         <div class="grow">
           Danger
         </div>
-      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><p>这里要使用 <strong>make menuconfig</strong> 生成出 <strong>.config</strong>, 不能直接修改 <strong>defconfig</strong>
-引自 <a href="https://missking.cc/2022/09/05/kernel1-0/"  target="_blank" rel="noreferrer">aosp12内核编译开启硬件断点和kprobes记录</a></p></div></div><div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># 进入图形界面以后什么都不用改, 直接退出</span>
+      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><p>这里要使用 <strong>make menuconfig</strong> 生成出 <strong>.config</strong>, 不能直接修改 <strong>defconfig</strong></p></div></div><div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># 进入图形界面以后什么都不用改, 直接退出</span>
 </span></span><span style="display:flex;"><span>make ARCH<span style="color:#f92672">=</span>arm64 O<span style="color:#f92672">=</span>out menuconfig
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#75715e"># 手动修改 .config, 这样还是更快, 哈哈</span>
@@ -1206,21 +1206,21 @@ Google 已经停止维护 Mac 上的工具链, 只能自己编译或寻找公开
       <div class="flex justify-between pt-3">
         <span class="flex flex-col">
           
+        </span>
+        <span class="flex flex-col items-end">
+          
             <a
-              class="flex text-neutral-700 hover:text-primary-600 dark:text-neutral dark:hover:text-primary-400"
-              href="/posts/pixel-6-kernel-2/pixel6-kernel-2/">
+              class="flex text-right text-neutral-700 hover:text-primary-600 dark:text-neutral dark:hover:text-primary-400"
+              href="/posts/pixel-6-kernel-1/pixel6-kernel-1/">
               <span class="leading-6">
-                <span class="inline-block rtl:rotate-180">&larr;</span>&ensp;Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2
+                Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1&ensp;<span class="inline-block rtl:rotate-180">&rarr;</span>
               </span>
             </a>
             
-              <span class="ms-6 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <span class="me-6 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                 <time datetime="2026-05-23T00:00:00&#43;00:00">May 23, 2026</time>
               </span>
             
-          
-        </span>
-        <span class="flex flex-col items-end">
           
         </span>
       </div>

@@ -1,0 +1,1051 @@
+<!doctype html>
+<html
+  lang="en-us"
+  dir="ltr"
+  class="scroll-smooth"
+  data-default-appearance="light"
+  data-auto-appearance="true"><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="utf-8">
+  
+    <meta http-equiv="content-language" content="en-us">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color">
+
+  
+  
+    <title>Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2 &middot; SharkFall&#39;s Blog</title>
+    <meta name="title" content="Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2 &middot; SharkFall&#39;s Blog">
+  
+
+  
+  
+  
+  
+  
+    
+  
+    
+  
+    
+  
+  
+  
+    <meta name="keywords" content="Kernel,Pixel 6,Arm64 Mac Compile Kernel,">
+  
+  
+  
+  <link rel="canonical" href="http://localhost:1313/posts/pixel-6-kernel-2/pixel6-kernel-2/">
+  
+  
+
+  
+  
+  
+
+  
+  <meta property="og:url" content="http://localhost:1313/posts/pixel-6-kernel-2/pixel6-kernel-2/">
+  <meta property="og:site_name" content="SharkFall&#39;s Blog">
+  <meta property="og:title" content="Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2">
+  <meta property="og:description" content="前情提要 # 关键词: Arm64 Mac 编译 Pixel 6 内核及内核模块 rwProcMem33, eBPF环境
+上一篇 Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1 编译出的内核无法使用, 再次挑战
+这一篇从头来过, 再次记录一下踩坑过程, 希望能帮助到屏幕前的你
+我的设备是:
+Pixel 6 Android 14 (AP2A.240905.003.F1, Sep 2024) -&gt; 镜像下载 Mac Pro M5 Max Docker amd64 ubuntu 22.04 (Docker 部署参考上一篇) 使用 Repo 下载内核源码 # 下载 Repo 工具 # curl https://storage.googleapis.com/git-repo-downloads/repo &gt; /usr/local/bin/repo chmod &#43;x /usr/local/bin/repo 配置 Repo 镜像 # 这里参考 将rwProcMem33编译进安卓内核, 使用清华大学的镜像">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-05-23T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-05-23T00:00:00+00:00">
+    <meta property="article:tag" content="Kernel">
+    <meta property="article:tag" content="Pixel 6">
+    <meta property="article:tag" content="Arm64 Mac Compile Kernel">
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2">
+  <meta name="twitter:description" content="前情提要 # 关键词: Arm64 Mac 编译 Pixel 6 内核及内核模块 rwProcMem33, eBPF环境
+上一篇 Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1 编译出的内核无法使用, 再次挑战
+这一篇从头来过, 再次记录一下踩坑过程, 希望能帮助到屏幕前的你
+我的设备是:
+Pixel 6 Android 14 (AP2A.240905.003.F1, Sep 2024) -&gt; 镜像下载 Mac Pro M5 Max Docker amd64 ubuntu 22.04 (Docker 部署参考上一篇) 使用 Repo 下载内核源码 # 下载 Repo 工具 # curl https://storage.googleapis.com/git-repo-downloads/repo &gt; /usr/local/bin/repo chmod &#43;x /usr/local/bin/repo 配置 Repo 镜像 # 这里参考 将rwProcMem33编译进安卓内核, 使用清华大学的镜像">
+
+  
+  
+  
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+  
+    
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+  <link
+    type="text/css"
+    rel="stylesheet"
+    href="/css/main.bundle.min.d8968b5074e51f1df2a14d9e8ab8071f02e54104fdf2df960e0484275b9fe02a27f22b633a79d5a05580f363a0119fb7304eb8d4c358fb0a6760875471fafd61.css"
+    integrity="sha512-2JaLUHTlHx3yoU2eirgHHwLlQQT98t&#43;WDgSEJ1uf4Con8itjOnnVoFWA82OgEZ&#43;3ME641MNY&#43;wpnYIdUcfr9YQ==">
+
+  
+  
+  <script
+    type="text/javascript"
+    src="/js/appearance.min.6f41174b3a05b680820fe08cadbfa5fb7a7ca347b76a0955cdc68b9d8aca1ce24f0547e138cea33bcc7904d551a90afcb1cc7f2d9fe8557075d501419046c08c.js"
+    integrity="sha512-b0EXSzoFtoCCD&#43;CMrb&#43;l&#43;3p8o0e3aglVzcaLnYrKHOJPBUfhOM6jO8x5BNVRqQr8scx/LZ/oVXB11QFBkEbAjA=="></script>
+  
+  
+  
+  
+  
+  
+    
+    <script src="/lib/zoom/zoom.min.umd.a527109b68c082a70f3697716dd72a9d5aa8b545cf800cecbbc7399f2ca6f6e0ce3e431f2062b48bbfa47c9ea42822714060bef309be073f49b9c0e30d318d7b.js" integrity="sha512-pScQm2jAgqcPNpdxbdcqnVqotUXPgAzsu8c5nyym9uDOPkMfIGK0i7&#43;kfJ6kKCJxQGC&#43;8wm&#43;Bz9JucDjDTGNew=="></script>
+  
+
+  
+  
+  
+    
+  
+  
+  
+  
+  
+  
+  
+  
+    
+    <script
+      defer
+      type="text/javascript"
+      id="script-bundle"
+      src="/js/main.bundle.min.6f9e49850a316ceb9908ad4b153b391e55b41bbcee8b408b52410567544eeebe6776aa57d770d75952dc164e6071068a848bdc5cb48c4dbaef04d65b3f442667.js"
+      integrity="sha512-b55JhQoxbOuZCK1LFTs5HlW0G7zui0CLUkEFZ1RO7r5ndqpX13DXWVLcFk5gcQaKhIvcXLSMTbrvBNZbP0QmZw=="
+      data-copy="Copy"
+      data-copied="Copied"></script>
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+  
+
+  
+  <script type="application/ld+json">
+  [{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "articleSection": "Posts",
+    "name": "Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2",
+    "headline": "Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2",
+    
+    "inLanguage": "en-us",
+    "url" : "http://localhost:1313/posts/pixel-6-kernel-2/pixel6-kernel-2/",
+    "author" : {
+      "@type": "Person",
+      "name": ""
+    },
+    "copyrightYear": "2026",
+    "dateCreated": "2026-05-23T00:00:00\u002b00:00",
+    "datePublished": "2026-05-23T00:00:00\u002b00:00",
+    
+    "dateModified": "2026-05-23T00:00:00\u002b00:00",
+    
+    "keywords": ["Kernel","Pixel 6","Arm64 Mac Compile Kernel"],
+    
+    "mainEntityOfPage": "true",
+    "wordCount": "1269"
+  }]
+  </script>
+
+
+
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+</head>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <body class="flex flex-col h-screen m-auto leading-7 max-w-7xl px-6 sm:px-14 md:px-24 lg:px-32 text-lg bg-neutral text-neutral-900 dark:bg-neutral-800 dark:text-neutral bf-scrollbar">
+    <div id="the-top" class="absolute flex self-center">
+      <a
+        class="px-3 py-1 text-sm -translate-y-8 rounded-b-lg bg-primary-200 focus:translate-y-0 dark:bg-neutral-600"
+        href="#main-content">
+        <span class="font-bold text-primary-600 pe-2 dark:text-primary-400">&darr;</span>
+        Skip to main content
+      </a>
+    </div>
+    
+    
+      <div class="main-menu flex items-center w-full gap-2 p-1 pl-0">
+  
+  
+    <a href="/" class="text-base font-medium truncate min-w-0 shrink">
+      SharkFall&rsquo;s Blog
+    </a>
+  
+  <div class="flex items-center ms-auto">
+    <div class="hidden md:flex">
+      <nav class="flex items-center gap-x-5 h-12">
+  
+
+  
+
+  
+
+  <a
+    href="/posts"
+    class="flex items-center text-base font-medium bf-icon-color-hover"
+    title="Posts">
+    Posts
+  </a>
+
+  
+
+  
+    <div class="flex items-center">
+      <button
+        id="appearance-switcher"
+        aria-label="Dark mode switcher"
+        type="button"
+        class="text-base bf-icon-color-hover">
+        <div class="flex items-center justify-center dark:hidden">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+        </div>
+        <div class="items-center justify-center hidden dark:flex">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+        </div>
+      </button>
+    </div>
+  
+</nav>
+
+
+
+    </div>
+    <div class="flex md:hidden">
+      <div class="flex items-center h-14 gap-4">
+  <a
+    href="/posts"
+    class="flex items-center justify-center text-base font-medium bf-icon-color-hover"
+    title="Posts">
+    Posts
+  </a>
+
+  
+
+  
+    <button
+      id="appearance-switcher-mobile"
+      type="button"
+      aria-label="Dark mode switcher"
+      class="flex items-center justify-center text-neutral-900 hover:text-primary-600 dark:text-neutral-200 dark:hover:text-primary-400">
+      <div class="dark:hidden">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+      </div>
+      <div class="hidden dark:block">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+      </div>
+    </button>
+  
+
+  
+</div>
+
+
+
+
+
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+    
+    <div class="relative flex flex-col grow">
+      <main id="main-content" class="grow">
+        
+  
+  <article>
+    
+    
+
+    
+    <header id="single_header" class="mt-5 max-w-prose">
+      
+      <h1 class="mt-0 text-4xl font-extrabold text-neutral-900 dark:text-neutral">
+        Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x2
+      </h1>
+      <div class="mt-1 mb-6 text-base text-neutral-500 dark:text-neutral-400 print:hidden">
+        
+
+
+
+
+
+  
+  
+
+
+
+  
+
+  
+  
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+  <div class="flex flex-row flex-wrap items-center">
+    
+    
+      <time datetime="2026-05-23T00:00:00&#43;00:00">May 23, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1269 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">6 mins</span>
+    
+
+    
+    
+  </div>
+
+  
+
+  
+  
+
+
+      </div>
+      
+        
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+    
+    
+<div class="flex author">
+  
+  <div class="place-self-center">
+    
+    
+    <div class="text-2xl sm:text-lg">
+</div>
+  </div>
+</div>
+
+  
+
+  
+
+  
+    <div class="mb-5"></div>
+  
+
+      
+    </header>
+
+    
+    <section class="flex flex-col max-w-full mt-0 prose dark:prose-invert lg:flex-row">
+      
+      
+      
+      
+      
+        <div class="order-first lg:ms-auto px-0 lg:order-last lg:ps-8 lg:max-w-2xs">
+          <div class="toc ps-5 print:hidden lg:sticky lg:top-10">
+            <details
+  open
+  id="TOCView"
+  class="toc-right mt-0 overflow-y-auto overscroll-contain bf-scrollbar rounded-lg -ms-5 ps-5 pe-2 hidden lg:block">
+  <summary
+    class="block py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="min-w-[220px] py-2 border-dotted border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前情提要">前情提要</a></li>
+    <li><a href="#使用-repo-下载内核源码">使用 Repo 下载内核源码</a>
+      <ul>
+        <li><a href="#下载-repo-工具">下载 Repo 工具</a></li>
+        <li><a href="#配置-repo-镜像">配置 Repo 镜像</a></li>
+        <li><a href="#下载源码">下载源码</a></li>
+        <li><a href="#切换到目标-commit">切换到目标 commit</a></li>
+      </ul>
+    </li>
+    <li><a href="#编译内核">编译内核</a>
+      <ul>
+        <li><a href="#获取原厂-ramdiskcpio">获取原厂 ramdisk.cpio</a></li>
+        <li><a href="#使用-buildsh-进行编译">使用 build.sh 进行编译</a></li>
+        <li><a href="#处理编译报错">处理编译报错</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</details>
+<details class="toc-inside mt-0 overflow-hidden rounded-lg -ms-5 ps-5 lg:hidden">
+  <summary
+    class="py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="py-2 border-dotted border-neutral-300 border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前情提要">前情提要</a></li>
+    <li><a href="#使用-repo-下载内核源码">使用 Repo 下载内核源码</a>
+      <ul>
+        <li><a href="#下载-repo-工具">下载 Repo 工具</a></li>
+        <li><a href="#配置-repo-镜像">配置 Repo 镜像</a></li>
+        <li><a href="#下载源码">下载源码</a></li>
+        <li><a href="#切换到目标-commit">切换到目标 commit</a></li>
+      </ul>
+    </li>
+    <li><a href="#编译内核">编译内核</a>
+      <ul>
+        <li><a href="#获取原厂-ramdiskcpio">获取原厂 ramdisk.cpio</a></li>
+        <li><a href="#使用-buildsh-进行编译">使用 build.sh 进行编译</a></li>
+        <li><a href="#处理编译报错">处理编译报错</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</details>
+
+
+
+          </div>
+        </div>
+      
+
+
+      <div class="min-w-0 min-h-0 max-w-fit">
+        
+
+        <div class="article-content max-w-prose mb-20">
+          
+<h2 class="relative group">前情提要
+    <div id="前情提要" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%89%8d%e6%83%85%e6%8f%90%e8%a6%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>关键词: Arm64 Mac 编译 Pixel 6 内核及内核模块 rwProcMem33, eBPF环境</p>
+<p>上一篇 <a href="https://sharkfall.github.io/posts/pixel-6-kernel-1/pixel6-kernel-1/#%E5%89%8D%E6%83%85%E6%8F%90%E8%A6%81"  target="_blank" rel="noreferrer">Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1</a> 编译出的内核无法使用, 再次挑战</p>
+<p>这一篇从头来过, 再次记录一下踩坑过程, 希望能帮助到屏幕前的你</p>
+<p>我的设备是:</p>
+<ul>
+<li>Pixel 6 Android 14 (AP2A.240905.003.F1, Sep 2024) -&gt; <a href="https://googledownloads.cn/android/aosp/oriole-ap2a.240905.003.f1-factory-655c44e7.zip"  target="_blank" rel="noreferrer">镜像下载</a></li>
+<li>Mac Pro M5 Max</li>
+<li>Docker amd64 ubuntu 22.04 (Docker 部署参考上一篇)</li>
+</ul>
+
+<h2 class="relative group">使用 Repo 下载内核源码
+    <div id="使用-repo-下载内核源码" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%bd%bf%e7%94%a8-repo-%e4%b8%8b%e8%bd%bd%e5%86%85%e6%a0%b8%e6%ba%90%e7%a0%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">下载 Repo 工具
+    <div id="下载-repo-工具" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%b8%8b%e8%bd%bd-repo-%e5%b7%a5%e5%85%b7" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>curl https://storage.googleapis.com/git-repo-downloads/repo &gt; /usr/local/bin/repo
+</span></span><span style="display:flex;"><span>chmod +x /usr/local/bin/repo</span></span></code></pre></div></div>
+
+<h3 class="relative group">配置 Repo 镜像
+    <div id="配置-repo-镜像" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e9%85%8d%e7%bd%ae-repo-%e9%95%9c%e5%83%8f" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这里参考 <a href="https://bbs.kanxue.com/thread-278647.htm#msg_header_h2_7"  target="_blank" rel="noreferrer">将rwProcMem33编译进安卓内核</a>, 使用清华大学的镜像</p>
+<p>有魔法直接继续</p>
+
+<h3 class="relative group">下载源码
+    <div id="下载源码" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%b8%8b%e8%bd%bd%e6%ba%90%e7%a0%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="danger">
+      <div class="flex items-center gap-2 font-semibold text-inherit">
+        <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+<path fill="currentColor"  d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-2.8-5.6-5.6-11.2-9.8-16.8l-50.6 58.8s-81.4-103.6-87.1-110.6C133.1 243.8 112 273.2 112 306.8C112 375.4 162.6 416 225.7 416z"/></svg></span></div>
+        <div class="grow">
+          Danger
+        </div>
+      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><ul>
+<li>注意一点, 请先进入你想要下载的AOSP的地址, 看看仓库中的default.xml文件,</li>
+<li>重点关注 &lt;project path=&ldquo;build&rdquo; name=&ldquo;kernel/build&rdquo; , 如果 revision 的值为 main,</li>
+<li>请千万不要下载, 否则你就会发现下载下来之后根本无法build!!, 这是由于build仓库和内核源码仓库不同步导致的</li>
+<li>引用自 <a href="https://bbs.kanxue.com/thread-278647.htm#msg_header_h1_1"  target="_blank" rel="noreferrer">Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1</a></li>
+</ul></div></div><p>分支是 <strong>android-gs-raviole-5.10-android14-qpr3</strong>, 确认分支参考-&gt;  <strong><a href="https://sharkfall.github.io/posts/pixel-6-kernel-1/pixel6-kernel-1/#%E7%A1%AE%E8%AE%A4%E5%86%85%E6%A0%B8%E6%BA%90%E7%A0%81%E5%88%86%E6%94%AF"  target="_blank" rel="noreferrer">[上一篇]</a></strong></p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>mkdir new-pixel-6-android14 <span style="color:#f92672">&amp;&amp;</span> cd new-pixel-6-android14/
+</span></span><span style="display:flex;"><span>repo init -u https://android.googlesource.com/kernel/manifest -b android-gs-raviole-5.10-android14-qpr3
+</span></span><span style="display:flex;"><span>repo sync -c --no-tags -j30
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Syncing: 100% <span style="color:#f92672">(</span>57/57<span style="color:#f92672">)</span>, <span style="color:#66d9ef">done</span> in 21.883s
+</span></span><span style="display:flex;"><span>Finalizing sync state...
+</span></span><span style="display:flex;"><span>repo sync has finished successfully.</span></span></code></pre></div></div>
+<p>使用 Repo 工具貌似还会下载一些编译工具, 所以需要下载九九八十一年, 耐性等待</p>
+<p>拉取下来以后, 发现 prebuilts 目录下就有 clang 等交叉编译工具, 看来这才是编译内核的正确姿势</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@e7d43a17936b:/workplace/new-pixel-6-android14# ls -il prebuilts/
+</span></span><span style="display:flex;"><span>total <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">472504</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 13:03 bazel
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">654404</span> drwxr-xr-x  <span style="color:#ae81ff">6</span> root root <span style="color:#ae81ff">192</span> May <span style="color:#ae81ff">23</span> 13:39 boot-artifacts
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">645641</span> drwxr-xr-x <span style="color:#ae81ff">18</span> root root <span style="color:#ae81ff">576</span> May <span style="color:#ae81ff">23</span> 13:16 build-tools
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">660063</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 13:55 clang
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">685493</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 14:29 gas
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">399052</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 12:59 gcc
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">465932</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 13:02 jdk
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">474963</span> drwxr-xr-x  <span style="color:#ae81ff">9</span> root root <span style="color:#ae81ff">288</span> May <span style="color:#ae81ff">23</span> 13:06 kernel-build-tools
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">557402</span> drwxr-xr-x <span style="color:#ae81ff">14</span> root root <span style="color:#ae81ff">448</span> May <span style="color:#ae81ff">23</span> 13:07 misc</span></span></code></pre></div></div>
+
+<h3 class="relative group">切换到目标 commit
+    <div id="切换到目标-commit" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%88%87%e6%8d%a2%e5%88%b0%e7%9b%ae%e6%a0%87-commit" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这里需要切换分支 <strong>git checkout android-gs-raviole-5.10-android14-qpr3</strong>, 可以规避后面的报错</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cd private/gs-google
+</span></span><span style="display:flex;"><span>git checkout android-gs-raviole-5.10-android14-qpr3
+</span></span><span style="display:flex;"><span>git reset --hard 12f3388846c3
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>HEAD is now at 12f3388846c3 ANDROID: ABI fixup <span style="color:#66d9ef">for</span> abi break in struct dst_ops</span></span></code></pre></div></div>
+
+<h2 class="relative group">编译内核
+    <div id="编译内核" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e7%bc%96%e8%af%91%e5%86%85%e6%a0%b8" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">获取原厂 ramdisk.cpio
+    <div id="获取原厂-ramdiskcpio" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e8%8e%b7%e5%8f%96%e5%8e%9f%e5%8e%82-ramdiskcpio" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>可以参考 <a href="https://source.android.google.cn/docs/setup/build/building-pixel-kernels?hl=zh-cn#update_the_vendor_ramdisk"  target="_blank" rel="noreferrer">从 Pixel 出厂映像中提取供应商 ramdisk 映像</a></p>
+<p>从刷机包中提取 vendor_boot.img , 使用 mkbootimg 解包, 就会得到 dtb ramdisk</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@e7d43a17936b:/workplace/mk-boot# ../new-pixel-6-android14/tools/mkbootimg/unpack_bootimg.py --boot_img vendor_boot.img --out vendor_boot_out 
+</span></span><span style="display:flex;"><span>boot magic: VNDRBOOT
+</span></span><span style="display:flex;"><span>vendor boot image header version: <span style="color:#ae81ff">4</span>
+</span></span><span style="display:flex;"><span>page size: 0x00000800
+</span></span><span style="display:flex;"><span>kernel load address: 0x10008000
+</span></span><span style="display:flex;"><span>ramdisk load address: 0x11000000
+</span></span><span style="display:flex;"><span>vendor ramdisk total size: <span style="color:#ae81ff">31366634</span>
+</span></span><span style="display:flex;"><span>vendor command line args: exynos_mfc.load_sequential<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> exynos_drm.load_sequential<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> pcie-exynos-core.load_sequential<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> g2d.load_sequential<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> disable_dma32<span style="color:#f92672">=</span>on dyndbg<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;func alloc_contig_dump_pages +p&#34;</span> earlycon<span style="color:#f92672">=</span>exynos4210,0x10A00000 console<span style="color:#f92672">=</span>ttySAC0,115200 androidboot.console<span style="color:#f92672">=</span>ttySAC0 printk.devkmsg<span style="color:#f92672">=</span>on cma_sysfs.experimental<span style="color:#f92672">=</span>Y swiotlb<span style="color:#f92672">=</span>noforce at24.write_timeout<span style="color:#f92672">=</span><span style="color:#ae81ff">100</span> log_buf_len<span style="color:#f92672">=</span>1024K bootconfig
+</span></span><span style="display:flex;"><span>kernel tags load address: 0x10000100
+</span></span><span style="display:flex;"><span>product name: 
+</span></span><span style="display:flex;"><span>vendor boot image header size: <span style="color:#ae81ff">2128</span>
+</span></span><span style="display:flex;"><span>dtb size: <span style="color:#ae81ff">534086</span>
+</span></span><span style="display:flex;"><span>dtb address: 0x0000000011f00000
+</span></span><span style="display:flex;"><span>vendor ramdisk table size: <span style="color:#ae81ff">216</span>
+</span></span><span style="display:flex;"><span>vendor ramdisk table: <span style="color:#f92672">[</span>
+</span></span><span style="display:flex;"><span>    vendor_ramdisk00: <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>        size: <span style="color:#ae81ff">23936891</span>
+</span></span><span style="display:flex;"><span>        offset: <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>        type: 0x1
+</span></span><span style="display:flex;"><span>        name: 
+</span></span><span style="display:flex;"><span>        board_id: <span style="color:#f92672">[</span>
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span>    vendor_ramdisk01: <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>        size: <span style="color:#ae81ff">7429743</span>
+</span></span><span style="display:flex;"><span>        offset: <span style="color:#ae81ff">23936891</span>
+</span></span><span style="display:flex;"><span>        type: 0x3
+</span></span><span style="display:flex;"><span>        name: dlkm
+</span></span><span style="display:flex;"><span>        board_id: <span style="color:#f92672">[</span>
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>            0x00000000, 0x00000000, 0x00000000, 0x00000000,
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>vendor bootconfig size: <span style="color:#ae81ff">77</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>root@e7d43a17936b:/workplace/mk-boot# ls -il vendor_boot_out/
+</span></span><span style="display:flex;"><span>total <span style="color:#ae81ff">61792</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">690366</span> -rw-r--r-- <span style="color:#ae81ff">1</span> root root       <span style="color:#ae81ff">77</span> May <span style="color:#ae81ff">23</span> 14:49 bootconfig
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">690367</span> -rw-r--r-- <span style="color:#ae81ff">1</span> root root   <span style="color:#ae81ff">534086</span> May <span style="color:#ae81ff">23</span> 14:49 dtb
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">690368</span> drwxr-xr-x <span style="color:#ae81ff">4</span> root root      <span style="color:#ae81ff">128</span> May <span style="color:#ae81ff">23</span> 14:49 vendor-ramdisk-by-name
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">690363</span> -rw-r--r-- <span style="color:#ae81ff">1</span> root root <span style="color:#ae81ff">31366634</span> May <span style="color:#ae81ff">23</span> 14:49 vendor_ramdisk
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">690364</span> -rw-r--r-- <span style="color:#ae81ff">1</span> root root <span style="color:#ae81ff">23936891</span> May <span style="color:#ae81ff">23</span> 14:49 vendor_ramdisk00
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">690365</span> -rw-r--r-- <span style="color:#ae81ff">1</span> root root  <span style="color:#ae81ff">7429743</span> May <span style="color:#ae81ff">23</span> 14:49 vendor_ramdisk01</span></span></code></pre></div></div>
+<p>复制 ramdisk 到内核源码 ramdisk 路径</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@e7d43a17936b:/workplace/mk-boot# cp vendor_boot_out/vendor-ramdisk-by-name/ramdisk_ ../new-pixel-6-android14/prebuilts/boot-artifacts/ramdisks/vendor_ramdisk-oriole.img</span></span></code></pre></div></div>
+
+<h3 class="relative group">使用 build.sh 进行编译
+    <div id="使用-buildsh-进行编译" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%bd%bf%e7%94%a8-buildsh-%e8%bf%9b%e8%a1%8c%e7%bc%96%e8%af%91" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>单独写一份内核配置, 只写我们需要的</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cat &gt; private/gs-google/arch/arm64/configs/shark.fragment <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_IKHEADERS=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_HAVE_KPROBES=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_KPROBES=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_KPROBE_EVENT=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_HAVE_HW_BREAKPOINT=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_HAVE_ARCH_TRACEHOOK=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span></span></span></code></pre></div></div>
+<p>指定编译配置 <strong>build.config.gki.aarch64</strong> 路径和内核配置 <strong>shark.fragment</strong> 路径</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>BUILD_CONFIG<span style="color:#f92672">=</span>private/gs-google/build.config.gki.aarch64 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>GKI_DEFCONFIG_FRAGMENT<span style="color:#f92672">=</span>private/gs-google/arch/arm64/configs/shark.fragment <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>LTO<span style="color:#f92672">=</span>thin build/build.sh -j<span style="color:#66d9ef">$(</span>nproc --all<span style="color:#66d9ef">)</span> 2&gt;&amp;<span style="color:#ae81ff">1</span> | tee build.log</span></span></code></pre></div></div>
+
+<h3 class="relative group">处理编译报错
+    <div id="处理编译报错" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%a4%84%e7%90%86%e7%bc%96%e8%af%91%e6%8a%a5%e9%94%99" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>遇到报错如下, 竟然是代码问题 ???</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  CC      drivers/scsi/scsicam.o
+</span></span><span style="display:flex;"><span>  CC      drivers/base/dd.o
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:33:19: error: incomplete definition of type <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>dscp !<span style="color:#f92672">=</span> dinfo-&gt;dscp<span style="color:#f92672">)</span> <span style="color:#f92672">{</span>
+</span></span><span style="display:flex;"><span>                    ~~~~~^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:30:15: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>        const struct xt_DSCP_info *dinfo <span style="color:#f92672">=</span> par-&gt;targinfo;
+</span></span><span style="display:flex;"><span>                     ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:39:14: error: incomplete definition of type <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>                                    dinfo-&gt;dscp <span style="color:#e6db74">&lt;&lt; XT_DSCP_SHIFT);
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                                    ~~~~~^
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:30:15: note: forward declaration of &#39;struct xt_DSCP_info&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        const struct xt_DSCP_info *dinfo = par-&gt;targinfo;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                     ^
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:51:19: error: incomplete definition of type &#39;struct xt_DSCP_info&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        if (dscp != dinfo-&gt;dscp) {
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                    ~~~~~^
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:48:15: note: forward declaration of &#39;struct xt_DSCP_info&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        const struct xt_DSCP_info *dinfo = par-&gt;targinfo;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                     ^
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:57:14: error: incomplete definition of type &#39;struct xt_DSCP_info&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">                                    dinfo-&gt;dscp &lt;&lt; XT_DSCP_SHIFT</span><span style="color:#f92672">)</span>;
+</span></span><span style="display:flex;"><span>                                    ~~~~~^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:48:15: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>        const struct xt_DSCP_info *dinfo <span style="color:#f92672">=</span> par-&gt;targinfo;
+</span></span><span style="display:flex;"><span>                     ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:66:10: error: incomplete definition of type <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#f92672">(</span>info-&gt;dscp &gt; XT_DSCP_MAX<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>            ~~~~^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:64:15: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>        const struct xt_DSCP_info *info <span style="color:#f92672">=</span> par-&gt;targinfo;
+</span></span><span style="display:flex;"><span>                     ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:79:22: error: incomplete definition of type <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        nv   <span style="color:#f92672">=</span> <span style="color:#f92672">(</span>orig &amp; ~info-&gt;tos_mask<span style="color:#f92672">)</span> ^ info-&gt;tos_value;
+</span></span><span style="display:flex;"><span>                        ~~~~^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:74:15: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        const struct xt_tos_target_info *info <span style="color:#f92672">=</span> par-&gt;targinfo;
+</span></span><span style="display:flex;"><span>                     ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:79:40: error: incomplete definition of type <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        nv   <span style="color:#f92672">=</span> <span style="color:#f92672">(</span>orig &amp; ~info-&gt;tos_mask<span style="color:#f92672">)</span> ^ info-&gt;tos_value;
+</span></span><span style="display:flex;"><span>                                          ~~~~^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:74:15: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        const struct xt_tos_target_info *info <span style="color:#f92672">=</span> par-&gt;targinfo;
+</span></span><span style="display:flex;"><span>                     ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:99:22: error: incomplete definition of type <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        nv   <span style="color:#f92672">=</span> <span style="color:#f92672">(</span>orig &amp; ~info-&gt;tos_mask<span style="color:#f92672">)</span> ^ info-&gt;tos_value;
+</span></span><span style="display:flex;"><span>                        ~~~~^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:94:15: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        const struct xt_tos_target_info *info <span style="color:#f92672">=</span> par-&gt;targinfo;
+</span></span><span style="display:flex;"><span>                     ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:99:40: error: incomplete definition of type <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        nv   <span style="color:#f92672">=</span> <span style="color:#f92672">(</span>orig &amp; ~info-&gt;tos_mask<span style="color:#f92672">)</span> ^ info-&gt;tos_value;
+</span></span><span style="display:flex;"><span>                                          ~~~~^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:94:15: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>        const struct xt_tos_target_info *info <span style="color:#f92672">=</span> par-&gt;targinfo;
+</span></span><span style="display:flex;"><span>                     ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:117:17: error: invalid application of <span style="color:#e6db74">&#39;sizeof&#39;</span> to an incomplete type <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_DSCP_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                  ^     ~~~~~~~~~~~~~~~~~~~~~
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:117:31: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_DSCP_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                                ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:126:17: error: invalid application of <span style="color:#e6db74">&#39;sizeof&#39;</span> to an incomplete type <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_DSCP_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                  ^     ~~~~~~~~~~~~~~~~~~~~~
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:117:31: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_DSCP_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_DSCP_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                                ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:136:17: error: invalid application of <span style="color:#e6db74">&#39;sizeof&#39;</span> to an incomplete type <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_tos_target_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                  ^     ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:136:31: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_tos_target_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                                ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:145:17: error: invalid application of <span style="color:#e6db74">&#39;sizeof&#39;</span> to an incomplete type <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_tos_target_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                  ^     ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:136:31: note: forward declaration of <span style="color:#e6db74">&#39;struct xt_tos_target_info&#39;</span>
+</span></span><span style="display:flex;"><span>                .targetsize     <span style="color:#f92672">=</span> sizeof<span style="color:#f92672">(</span>struct xt_tos_target_info<span style="color:#f92672">)</span>,
+</span></span><span style="display:flex;"><span>                                                ^
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:152:42: error: invalid application of <span style="color:#e6db74">&#39;sizeof&#39;</span> to an incomplete type <span style="color:#e6db74">&#39;struct xt_target[]&#39;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> xt_register_targets<span style="color:#f92672">(</span>dscp_tg_reg, ARRAY_SIZE<span style="color:#f92672">(</span>dscp_tg_reg<span style="color:#f92672">))</span>;
+</span></span><span style="display:flex;"><span>                                                ^~~~~~~~~~~~~~~~~~~~~~~
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/include/linux/kernel.h:49:32: note: expanded from macro <span style="color:#e6db74">&#39;ARRAY_SIZE&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))</span>
+</span></span><span style="display:flex;"><span>                               ^~~~~
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/net/netfilter/xt_DSCP.c:157:37: error: invalid application of <span style="color:#e6db74">&#39;sizeof&#39;</span> to an incomplete type <span style="color:#e6db74">&#39;struct xt_target[]&#39;</span>
+</span></span><span style="display:flex;"><span>        xt_unregister_targets<span style="color:#f92672">(</span>dscp_tg_reg, ARRAY_SIZE<span style="color:#f92672">(</span>dscp_tg_reg<span style="color:#f92672">))</span>;
+</span></span><span style="display:flex;"><span>                                           ^~~~~~~~~~~~~~~~~~~~~~~
+</span></span><span style="display:flex;"><span>/workplace/new-pixel-6-android14/private/gs-google/include/linux/kernel.h:49:32: note: expanded from macro <span style="color:#e6db74">&#39;ARRAY_SIZE&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))</span>
+</span></span><span style="display:flex;"><span>                               ^~~~~
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">15</span> errors generated.</span></span></code></pre></div></div>
+<p>在源码目录 <strong>private/gs-google/t</strong> 中 <strong>git status</strong></p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@e7d43a17936b:/workplace/new-pixel-6-android14/private/gs-google# git status
+</span></span><span style="display:flex;"><span>Refresh index: 100% <span style="color:#f92672">(</span>71088/71088<span style="color:#f92672">)</span>, <span style="color:#66d9ef">done</span>.
+</span></span><span style="display:flex;"><span>HEAD detached from b4d74ef49794
+</span></span><span style="display:flex;"><span>Changes not staged <span style="color:#66d9ef">for</span> commit:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">(</span>use <span style="color:#e6db74">&#34;git add/rm &lt;file&gt;...&#34;</span> to update what will be committed<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">(</span>use <span style="color:#e6db74">&#34;git restore &lt;file&gt;...&#34;</span> to discard changes in working directory<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/Kconfig.recursion-issue-01
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/Kconfig.recursion-issue-02
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/Kconfig.select-break
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/gcc-plugins.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/headers_install.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/index.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/issues.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/kbuild.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/kconfig-language.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/kconfig-macro-language.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/kconfig.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/llvm.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/makefiles.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/modules.rst
+</span></span><span style="display:flex;"><span>	deleted:    Documentation/kbuild/reproducible-builds.rst
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter/xt_CONNMARK.h
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter/xt_DSCP.h
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter/xt_MARK.h
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter/xt_TCPMSS.h
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter/xt_rateest.h
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter_ipv4/ipt_ECN.h
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter_ipv4/ipt_TTL.h
+</span></span><span style="display:flex;"><span>	modified:   include/uapi/linux/netfilter_ipv6/ip6t_hl.h
+</span></span><span style="display:flex;"><span>	modified:   net/netfilter/xt_RATEEST.c
+</span></span><span style="display:flex;"><span>	modified:   net/netfilter/xt_dscp.c
+</span></span><span style="display:flex;"><span>	modified:   net/netfilter/xt_hl.c
+</span></span><span style="display:flex;"><span>	modified:   net/netfilter/xt_tcpmss.c
+</span></span><span style="display:flex;"><span>	modified:   tools/memory-model/litmus-tests/Z6.0+pooncelock+pooncelock+pombonce.litmus</span></span></code></pre></div></div>
+<p>发现是没有绑定分支的, 还有代码被修改</p>
+<p>重新执行一下, 这次要 checkout 一下目标分支, <strong>保证代码干净, 未被修改</strong></p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cd private/gs-google
+</span></span><span style="display:flex;"><span>git checkout android-gs-raviole-5.10-android14-qpr3
+</span></span><span style="display:flex;"><span>git reset --hard 12f3388846c3
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>HEAD is now at 12f3388846c3 ANDROID: ABI fixup <span style="color:#66d9ef">for</span> abi break in struct dst_ops</span></span></code></pre></div></div>
+<p>因为恢复了代码, <strong>上面创建的 shark.fragment 文件也需要重新创建</strong>, 再重新编译</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>BUILD_CONFIG<span style="color:#f92672">=</span>private/gs-google/build.config.gki.aarch64 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>GKI_DEFCONFIG_FRAGMENT<span style="color:#f92672">=</span>private/gs-google/arch/arm64/configs/shark.fragment <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>LTO<span style="color:#f92672">=</span>thin build/build.sh -j<span style="color:#66d9ef">$(</span>nproc --all<span style="color:#66d9ef">)</span> 2&gt;&amp;<span style="color:#ae81ff">1</span> | tee build.log</span></span></code></pre></div></div>
+<p>再次遇到报错, 我 ++, <del>给我编译好的呀, 干嘛呢 ? (玩个梗)</del></p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@e7d43a17936b:/workplace/new-pixel-6-android14# BUILD_CONFIG<span style="color:#f92672">=</span>private/gs-google/build.config.gki.aarch64 GKI_DEFCONFIG_FRAGMENT<span style="color:#f92672">=</span>private/gs-google/arch/arm64/configs/shark.fragment LTO<span style="color:#f92672">=</span>thin build/build.sh -j<span style="color:#66d9ef">$(</span>nproc --all<span style="color:#66d9ef">)</span> 2&gt;&amp;<span style="color:#ae81ff">1</span> | tee build.log
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Setting up <span style="color:#66d9ef">for</span> build
+</span></span><span style="display:flex;"><span>• cd private/gs-google
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>• make LLVM<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> DEPMOD<span style="color:#f92672">=</span>depmod DTC<span style="color:#f92672">=</span>/workplace/new-pixel-6-android14/build/kernel/build-tools/path/linux-x86/dtc O<span style="color:#f92672">=</span>/workplace/new-pixel-6-android14/out/android13-5.10/private/gs-google -j18 mrproper
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: Entering directory <span style="color:#e6db74">&#39;/workplace/new-pixel-6-android14/out/android13-5.10/private/gs-google&#39;</span>
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>2<span style="color:#f92672">]</span>: *** /workplace/new-pixel-6-android14/private/gs-google/Documentation/Kbuild: Is a directory.  Stop.
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: *** <span style="color:#f92672">[</span>/workplace/new-pixel-6-android14/private/gs-google/Makefile:1920: _clean_Documentation<span style="color:#f92672">]</span> Error <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: Leaving directory <span style="color:#e6db74">&#39;/workplace/new-pixel-6-android14/out/android13-5.10/private/gs-google&#39;</span>
+</span></span><span style="display:flex;"><span>make: *** <span style="color:#f92672">[</span>Makefile:192: __sub-make<span style="color:#f92672">]</span> Error <span style="color:#ae81ff">2</span></span></span></code></pre></div></div>
+<p>根据字面意思, 这个 <strong>Documentation/Kbuild</strong> 得是一个文件, 但实际是目录, 问了问 GPT</p>
+<p>尝试给一下基础配置, 继续编译, 启动 !!!</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cat &gt; Documentation/Kbuild <span style="color:#e6db74">&lt;&lt;&#39;EOF&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># SPDX-License-Identifier: GPL-2.0
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span></span></span></code></pre></div></div>
+<p>又双叒叕报错了, 我 ++</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>make<span style="color:#f92672">[</span>3<span style="color:#f92672">]</span>: *** No rule to make target <span style="color:#e6db74">&#39;net/netfilter/xt_DSCP.o&#39;</span>, needed by <span style="color:#e6db74">&#39;net/netfilter/built-in.a&#39;</span>.  Stop.
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>3<span style="color:#f92672">]</span>: *** Waiting <span style="color:#66d9ef">for</span> unfinished jobs....
+</span></span><span style="display:flex;"><span>  CC      net/netfilter/xt_CT.o
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>2<span style="color:#f92672">]</span>: *** <span style="color:#f92672">[</span>/workplace/new-pixel-6-android14/private/gs-google/scripts/Makefile.build:544: net/netfilter<span style="color:#f92672">]</span> Error <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>2<span style="color:#f92672">]</span>: *** Waiting <span style="color:#66d9ef">for</span> unfinished jobs....
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: *** <span style="color:#f92672">[</span>/workplace/new-pixel-6-android14/private/gs-google/Makefile:1913: net<span style="color:#f92672">]</span> Error <span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span>make<span style="color:#f92672">[</span>1<span style="color:#f92672">]</span>: *** Waiting <span style="color:#66d9ef">for</span> unfinished jobs....</span></span></code></pre></div></div>
+<p>这里我就把源码目录删了, 重新 repo clone 了, 然后再编译</p>
+<p>然后又报错了, 没招了</p>
+
+          
+          
+          
+        </div>
+        
+        
+
+        
+
+        
+
+      </div>
+    </section>
+
+    
+    <footer class="pt-8 max-w-prose print:hidden">
+      
+  
+
+
+      
+    </footer>
+  </article>
+
+        
+
+
+  
+
+
+
+
+
+
+<div
+  id="scroll-to-top"
+  class="fixed bottom-6 end-6 z-50 transform translate-y-4 opacity-0 duration-200">
+  <a
+    href="#the-top"
+    class="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral/50 text-xl text-neutral-700 hover:text-primary-600 dark:bg-neutral-800/50 dark:text-neutral dark:hover:text-primary-400"
+    aria-label="Scroll to top"
+    title="Scroll to top">
+    &uarr;
+  </a>
+</div>
+
+      </main><footer id="site-footer" class="py-10 print:hidden">
+  
+  
+    
+  
+  <div class="flex items-center justify-between">
+    
+    
+      <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          &copy;
+          2026
+          
+      </p>
+    
+
+    
+    
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">
+        
+        Powered by <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://github.com/SharkFall" target="_blank" rel="noopener noreferrer">SharkFall</a> <no value>
+      </p>
+    
+  </div>
+  
+    <script>
+      mediumZoom(document.querySelectorAll("img:not(.nozoom)"), {
+        margin: 24,
+        background: "rgba(0,0,0,0.5)",
+        scrollOffset: 0,
+      });
+    </script>
+  
+  
+  
+</footer>
+
+    </div>
+  </body>
+  
+</html>
