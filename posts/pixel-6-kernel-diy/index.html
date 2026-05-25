@@ -236,7 +236,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
     "keywords": ["Kernel","Pixel 6","Arm64 Mac Compile Kernel"],
     
     "mainEntityOfPage": "true",
-    "wordCount": "1179"
+    "wordCount": "1289"
   }]
   </script>
 
@@ -448,7 +448,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
   <div class="flex flex-row flex-wrap items-center">
     
     
-      <time datetime="2026-05-24T00:00:00&#43;00:00">May 24, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1179 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">6 mins</span>
+      <time datetime="2026-05-24T00:00:00&#43;00:00">May 24, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1289 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
     
 
     
@@ -562,7 +562,13 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
         <li><a href="#美滋滋使用">美滋滋使用</a></li>
       </ul>
     </li>
-    <li><a href="#0x7-编译-rwprocmem33">0x7 编译 rwProcMem33</a></li>
+    <li><a href="#0x7-编译-rwprocmem33">0x7 编译 rwProcMem33</a>
+      <ul>
+        <li><a href="#拉取仓库">拉取仓库</a></li>
+        <li><a href="#修改内核版本">修改内核版本</a></li>
+        <li><a href="#配置-makefile">配置 MakeFile</a></li>
+      </ul>
+    </li>
     <li><a href="#0x8-后记">0x8 后记</a></li>
     <li><a href="#0x9-致谢">0x9 致谢</a></li>
   </ul>
@@ -622,7 +628,13 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
         <li><a href="#美滋滋使用">美滋滋使用</a></li>
       </ul>
     </li>
-    <li><a href="#0x7-编译-rwprocmem33">0x7 编译 rwProcMem33</a></li>
+    <li><a href="#0x7-编译-rwprocmem33">0x7 编译 rwProcMem33</a>
+      <ul>
+        <li><a href="#拉取仓库">拉取仓库</a></li>
+        <li><a href="#修改内核版本">修改内核版本</a></li>
+        <li><a href="#配置-makefile">配置 MakeFile</a></li>
+      </ul>
+    </li>
     <li><a href="#0x8-后记">0x8 后记</a></li>
     <li><a href="#0x9-致谢">0x9 致谢</a></li>
   </ul>
@@ -702,7 +714,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 <li>关键参数：
 <ul>
 <li><strong>名称</strong>：<code>CompileTask</code>（随便）</li>
-<li><strong>大小</strong>：至少 30GB，建议 40-50GB（源码 + 编译产物很大）</li>
+<li><strong>大小</strong>：最小不清楚, 我给了 500G</li>
 <li><strong>格式</strong>：<strong>APFS（区分大小写）</strong> 或 APFS（区分大小写，加密）</li>
 </ul>
 </li>
@@ -880,14 +892,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
     </span>
     
 </h2>
-<div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="tip">
-      <div class="flex items-center gap-2 font-semibold text-inherit">
-        <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M112.1 454.3c0 6.297 1.816 12.44 5.284 17.69l17.14 25.69c5.25 7.875 17.17 14.28 26.64 14.28h61.67c9.438 0 21.36-6.401 26.61-14.28l17.08-25.68c2.938-4.438 5.348-12.37 5.348-17.7L272 415.1h-160L112.1 454.3zM191.4 .0132C89.44 .3257 16 82.97 16 175.1c0 44.38 16.44 84.84 43.56 115.8c16.53 18.84 42.34 58.23 52.22 91.45c.0313 .25 .0938 .5166 .125 .7823h160.2c.0313-.2656 .0938-.5166 .125-.7823c9.875-33.22 35.69-72.61 52.22-91.45C351.6 260.8 368 220.4 368 175.1C368 78.61 288.9-.2837 191.4 .0132zM192 96.01c-44.13 0-80 35.89-80 79.1C112 184.8 104.8 192 96 192S80 184.8 80 176c0-61.76 50.25-111.1 112-111.1c8.844 0 16 7.159 16 16S200.8 96.01 192 96.01z"/></svg>
-</span></div>
-        <div class="grow">
-          Tip
-        </div>
-      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><p>这一段建议先看完，不要着急复现</p></div></div><p>正确的做法是用 Repo 下载完整源码后在本地查, 上面只是为了确认分支</p>
+<p>正确的做法是用 Repo 下载完整源码后在本地查, 上面是踩坑时用的方法, 顺便确认了分支</p>
 
 <h3 class="relative group">下载 Repo 工具
     <div id="下载-repo-工具" class="anchor"></div>
@@ -1053,6 +1058,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 <p>指定编译配置和 fragment，正式开跑：</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>BUILD_CONFIG<span style="color:#f92672">=</span>private/gs-google/build.config.gki.aarch64 <span style="color:#ae81ff">\
 </span></span></span><span style="display:flex;"><span>GKI_DEFCONFIG_FRAGMENT<span style="color:#f92672">=</span>private/gs-google/arch/arm64/configs/shark.fragment <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>LOCALVERSION<span style="color:#f92672">=</span>-android13-4-00050-ab11920634 <span style="color:#ae81ff">\
 </span></span></span><span style="display:flex;"><span>LTO<span style="color:#f92672">=</span>thin build/build.sh -j32 2&gt;&amp;<span style="color:#ae81ff">1</span> | tee build.log</span></span></code></pre></div></div>
 <p>耐心等待，编译完成后在 <code>out/android13-5.10dist/</code> 目录下可以找到：编译好的 kernel 和 boot 镜像</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
@@ -1188,6 +1194,87 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
     </span>
     
 </h2>
+
+<h3 class="relative group">拉取仓库
+    <div id="拉取仓库" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%8b%89%e5%8f%96%e4%bb%93%e5%ba%93" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>clone 仓库和交叉编译工具到本地</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># workplace 目录</span>
+</span></span><span style="display:flex;"><span>git clone https://github.com/kdrag0n/proton-clang --depth<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>git clone https://github.com/sharkfall/rwProcMem33.git</span></span></code></pre></div></div>
+
+<h3 class="relative group">修改内核版本
+    <div id="修改内核版本" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%bf%ae%e6%94%b9%e5%86%85%e6%a0%b8%e7%89%88%e6%9c%ac" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这里可以修改内核版本和 key</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="Android Source"
+    src="/images/pixel-6-kernel-1/rwproc-ver-control.png"
+    ></figure>
+</p>
+
+<h3 class="relative group">配置 MakeFile
+    <div id="配置-makefile" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e9%85%8d%e7%bd%ae-makefile" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>我这里不是直接放进内核源码的 drivers 目录下一起编译, 而是单独编译, 方便后续修改</p>
+<p>可参考下面的 Makefile, 之前用 proton-clang 编译过, 拿来改改直接用, 哈哈</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-makefile" data-lang="makefile"><span style="display:flex;"><span>obj-m <span style="color:#f92672">+=</span> hwBreakpointProc_module.o
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ARCH <span style="color:#f92672">:=</span> arm64
+</span></span><span style="display:flex;"><span>SUBARCH <span style="color:#f92672">:=</span> arm64
+</span></span><span style="display:flex;"><span>LLVM <span style="color:#f92672">:=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>LLVM_IAS <span style="color:#f92672">:=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>PROTON_CLANG <span style="color:#f92672">:=</span> /workplace/pixel-6-a14-5.10/prebuilts/clang/host/linux-x86/clang-r450784e/bin
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># PROTON_CLANG := /workspace/proton-clang/bin
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># CLANG_TRIPLE := aarch64-linux-gnu-
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># CROSS_COMPILE := $(PROTON_CLANG)/aarch64-linux-gnu-
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># CROSS_COMPILE_ARM32 := $(PROTON_CLANG)/arm-linux-gnueabi-
+</span></span></span><span style="display:flex;"><span>CC <span style="color:#f92672">:=</span> <span style="color:#66d9ef">$(</span>PROTON_CLANG<span style="color:#66d9ef">)</span>/clang
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>KDIR <span style="color:#f92672">:=</span> /workplace/pixel-6-a14-5.10/out/android13-5.10/private/gs-google
+</span></span><span style="display:flex;"><span>PWD <span style="color:#f92672">:=</span> <span style="color:#66d9ef">$(</span>shell pwd<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ccflags-y <span style="color:#f92672">:=</span> -Wno-unused-function
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">all</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>	PATH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>PROTON_CLANG<span style="color:#66d9ef">)</span>:<span style="color:#66d9ef">$(</span>PATH<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>	make -C <span style="color:#66d9ef">$(</span>KDIR<span style="color:#66d9ef">)</span> M<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>PWD<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		ARCH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>ARCH<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		SUBARCH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>SUBARCH<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CROSS_COMPILE<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CROSS_COMPILE<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CROSS_COMPILE_ARM32<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CROSS_COMPILE_ARM32<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CLANG_TRIPLE<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CLANG_TRIPLE<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CC<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CC<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		LLVM<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>LLVM<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		LLVM_IAS<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>LLVM_IAS<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		modules
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clean</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>	make -C <span style="color:#66d9ef">$(</span>KDIR<span style="color:#66d9ef">)</span> M<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>PWD<span style="color:#66d9ef">)</span> clean
+</span></span></code></pre></div></div>
 
 <h2 class="relative group">0x8 后记
     <div id="0x8-后记" class="anchor"></div>
