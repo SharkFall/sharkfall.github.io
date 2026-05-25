@@ -236,7 +236,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
     "keywords": ["Kernel","Pixel 6","Arm64 Mac Compile Kernel"],
     
     "mainEntityOfPage": "true",
-    "wordCount": "1289"
+    "wordCount": "1281"
   }]
   </script>
 
@@ -448,7 +448,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
   <div class="flex flex-row flex-wrap items-center">
     
     
-      <time datetime="2026-05-24T00:00:00&#43;00:00">May 24, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1289 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
+      <time datetime="2026-05-24T00:00:00&#43;00:00">May 24, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1281 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
     
 
     
@@ -990,8 +990,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
     </span>
     
 </h3>
-<p>看到别的大佬们的分享都是有解包 ramdisk 这一步的, 在 google source 也有提到</p>
-<p>但是我的手机的 boot.img 解包出来只有kernnel , ramdisk 是在 vendor_boot.img 中, 所以这里 skip 了</p>
+<p>pixel 6 的 ramdisk 在 vendor_boot.img 中, 我只需要 boot.img, 所以 skip 了</p>
 <p>如果有的话可以参考 <a href="https://bbs.kanxue.com/thread-278647.htm#msg_header_h2_15"  target="_blank" rel="noreferrer">解包 boot.img</a></p>
 
 <h3 class="relative group">创建内核配置 fragment
@@ -1058,12 +1057,11 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 <p>指定编译配置和 fragment，正式开跑：</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>BUILD_CONFIG<span style="color:#f92672">=</span>private/gs-google/build.config.gki.aarch64 <span style="color:#ae81ff">\
 </span></span></span><span style="display:flex;"><span>GKI_DEFCONFIG_FRAGMENT<span style="color:#f92672">=</span>private/gs-google/arch/arm64/configs/shark.fragment <span style="color:#ae81ff">\
-</span></span></span><span style="display:flex;"><span>LOCALVERSION<span style="color:#f92672">=</span>-android13-4-00050-ab11920634 <span style="color:#ae81ff">\
 </span></span></span><span style="display:flex;"><span>LTO<span style="color:#f92672">=</span>thin build/build.sh -j32 2&gt;&amp;<span style="color:#ae81ff">1</span> | tee build.log</span></span></code></pre></div></div>
-<p>耐心等待，编译完成后在 <code>out/android13-5.10dist/</code> 目录下可以找到：编译好的 kernel 和 boot 镜像</p>
+<p>耐心等待，编译完成后在 <code>out/android13-5.10/dist/</code> 目录下可以找到：编译好的 kernel 和 boot 镜像</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
 </span></span><span style="display:flex;"><span> Installing kernel modules into staging directory
-</span></span><span style="display:flex;"><span>  DEPMOD  5.10.198-android13-4-g12f3388846c3
+</span></span><span style="display:flex;"><span>  DEPMOD  5.10.198-android13-4-ge4403e757b70
 </span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
 </span></span><span style="display:flex;"><span> Generating gki_certification_tools.tar.gz
 </span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
@@ -1153,7 +1151,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 <p>到这里就 ok 了, 触控 wifi 都没有问题, 内核信息基本一致</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>sharkfall@Shark001:~% adb shell
 </span></span><span style="display:flex;"><span>oriole:/ $ cat /proc/version
-</span></span><span style="display:flex;"><span>Linux version 5.10.198-android13-4-g88011d7c30c3 <span style="color:#f92672">(</span>build-user@build-host<span style="color:#f92672">)</span> <span style="color:#f92672">(</span>Android <span style="color:#f92672">(</span>8508608, based on r450784e<span style="color:#f92672">)</span> clang version 14.0.7 <span style="color:#f92672">(</span>https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6<span style="color:#f92672">)</span>, LLD 14.0.7<span style="color:#f92672">)</span> <span style="color:#75715e">#1 SMP PREEMPT Sun May 24 14:13:04 UTC 2026</span>
+</span></span><span style="display:flex;"><span>Linux version 5.10.198-android13-4-ge4403e757b70 <span style="color:#f92672">(</span>build-user@build-host<span style="color:#f92672">)</span> <span style="color:#f92672">(</span>Android <span style="color:#f92672">(</span>8508608, based on r450784e<span style="color:#f92672">)</span> clang version 14.0.7 <span style="color:#f92672">(</span>https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6<span style="color:#f92672">)</span>, LLD 14.0.7<span style="color:#f92672">)</span> <span style="color:#75715e">#1 SMP PREEMPT Sun May 24 14:13:04 UTC 2026</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#75715e"># 下面是原始内核</span>
 </span></span><span style="display:flex;"><span>Linux version 5.10.198-android13-4-00050-g12f3388846c3-ab11920634 <span style="color:#f92672">(</span>build-user@build-host<span style="color:#f92672">)</span> <span style="color:#f92672">(</span>Android <span style="color:#f92672">(</span>8508608, based on r450784e<span style="color:#f92672">)</span> clang version 14.0.7 <span style="color:#f92672">(</span>https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6<span style="color:#f92672">)</span>, LLD 14.0.7<span style="color:#f92672">)</span> <span style="color:#75715e">#1 SMP PREEMPT Mon Jun 3 20:51:42 UTC 2024</span></span></span></code></pre></div></div>
@@ -1207,7 +1205,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 <p>clone 仓库和交叉编译工具到本地</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># workplace 目录</span>
 </span></span><span style="display:flex;"><span>git clone https://github.com/kdrag0n/proton-clang --depth<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
-</span></span><span style="display:flex;"><span>git clone https://github.com/sharkfall/rwProcMem33.git</span></span></code></pre></div></div>
+</span></span><span style="display:flex;"><span>git clone https://github.com/abcz316/rwProcMem33</span></span></code></pre></div></div>
 
 <h3 class="relative group">修改内核版本
     <div id="修改内核版本" class="anchor"></div>
@@ -1249,10 +1247,10 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>PROTON_CLANG <span style="color:#f92672">:=</span> /workplace/pixel-6-a14-5.10/prebuilts/clang/host/linux-x86/clang-r450784e/bin
 </span></span><span style="display:flex;"><span><span style="color:#75715e"># PROTON_CLANG := /workspace/proton-clang/bin
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># CLANG_TRIPLE := aarch64-linux-gnu-
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># CROSS_COMPILE := $(PROTON_CLANG)/aarch64-linux-gnu-
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"># CROSS_COMPILE_ARM32 := $(PROTON_CLANG)/arm-linux-gnueabi-
-</span></span></span><span style="display:flex;"><span>CC <span style="color:#f92672">:=</span> <span style="color:#66d9ef">$(</span>PROTON_CLANG<span style="color:#66d9ef">)</span>/clang
+</span></span></span><span style="display:flex;"><span>CLANG_TRIPLE <span style="color:#f92672">:=</span> aarch64-linux-gnu-
+</span></span><span style="display:flex;"><span>CROSS_COMPILE <span style="color:#f92672">:=</span> aarch64-linux-gnu-
+</span></span><span style="display:flex;"><span>CROSS_COMPILE_ARM32 <span style="color:#f92672">:=</span> arm-linux-gnueabi-
+</span></span><span style="display:flex;"><span>CC <span style="color:#f92672">:=</span> <span style="color:#66d9ef">$(</span>PROTON_CLANG<span style="color:#66d9ef">)</span>/clang
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>KDIR <span style="color:#f92672">:=</span> /workplace/pixel-6-a14-5.10/out/android13-5.10/private/gs-google
 </span></span><span style="display:flex;"><span>PWD <span style="color:#f92672">:=</span> <span style="color:#66d9ef">$(</span>shell pwd<span style="color:#66d9ef">)</span>
@@ -1275,6 +1273,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 </span></span><span style="display:flex;"><span><span style="color:#a6e22e">clean</span><span style="color:#f92672">:</span>
 </span></span><span style="display:flex;"><span>	make -C <span style="color:#66d9ef">$(</span>KDIR<span style="color:#66d9ef">)</span> M<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>PWD<span style="color:#66d9ef">)</span> clean
 </span></span></code></pre></div></div>
+<p>报错了, 解决中&hellip;.</p>
 
 <h2 class="relative group">0x8 后记
     <div id="0x8-后记" class="anchor"></div>
@@ -1311,6 +1310,7 @@ Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑�
 <li><a href="https://knkj55.github.io/2025/07/13/Android%E5%86%85%E6%A0%B8%E7%BC%96%E8%AF%91%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97-%E8%A7%A3%E6%9E%90/#LLVM-1"  target="_blank" rel="noreferrer">Android内核编译不完全指南/解析</a></li>
 <li><a href="https://bbs.kanxue.com/thread-278647.htm#msg_header_h2_7"  target="_blank" rel="noreferrer">将rwProcMem33编译进安卓内核</a></li>
 <li><a href="https://missking.cc/2022/09/05/kernel1-0/"  target="_blank" rel="noreferrer">aosp12内核编译开启硬件断点和kprobes记录</a></li>
+<li><a href="https://github.com/abcz316/rwProcMem33"  target="_blank" rel="noreferrer">rwProcMem33</a></li>
 </ul>
 
           
