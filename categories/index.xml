@@ -4,20 +4,16 @@
     <title>Categories on SharkFall&#39;s Blog</title>
     <link>https://example.org/categories/</link>
     <description>Recent content in Categories on SharkFall&#39;s Blog</description>
-    <generator>Hugo -- gohugo.io</generator>
+    <generator>Hugo</generator>
     <language>en-us</language>
-    <copyright>© 2026 </copyright>
-    <lastBuildDate>Sun, 24 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://example.org/categories/index.xml" rel="self" type="application/rss+xml" />
-    
+    <lastBuildDate>Sun, 24 May 2026 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/categories/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Kernel DIY</title>
       <link>https://example.org/categories/kernel-diy/</link>
       <pubDate>Sun, 24 May 2026 00:00:00 +0000</pubDate>
-      
       <guid>https://example.org/categories/kernel-diy/</guid>
       <description></description>
-      
     </item>
-    
   </channel>
 </rss>

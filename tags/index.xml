@@ -4,40 +4,30 @@
     <title>Tags on SharkFall&#39;s Blog</title>
     <link>https://example.org/tags/</link>
     <description>Recent content in Tags on SharkFall&#39;s Blog</description>
-    <generator>Hugo -- gohugo.io</generator>
+    <generator>Hugo</generator>
     <language>en-us</language>
-    <copyright>© 2026 </copyright>
-    <lastBuildDate>Sun, 24 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://example.org/tags/index.xml" rel="self" type="application/rss+xml" />
-    
+    <lastBuildDate>Sun, 24 May 2026 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/tags/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Arm64 Mac Compile Kernel</title>
       <link>https://example.org/tags/arm64-mac-compile-kernel/</link>
       <pubDate>Sun, 24 May 2026 00:00:00 +0000</pubDate>
-      
       <guid>https://example.org/tags/arm64-mac-compile-kernel/</guid>
       <description></description>
-      
     </item>
-    
     <item>
       <title>Kernel</title>
       <link>https://example.org/tags/kernel/</link>
       <pubDate>Sun, 24 May 2026 00:00:00 +0000</pubDate>
-      
       <guid>https://example.org/tags/kernel/</guid>
       <description></description>
-      
     </item>
-    
     <item>
       <title>Pixel 6</title>
       <link>https://example.org/tags/pixel-6/</link>
       <pubDate>Sun, 24 May 2026 00:00:00 +0000</pubDate>
-      
       <guid>https://example.org/tags/pixel-6/</guid>
       <description></description>
-      
     </item>
-    
   </channel>
 </rss>
