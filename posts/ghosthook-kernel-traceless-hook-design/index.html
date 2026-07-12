@@ -52,7 +52,7 @@
 经段一段时间的摸索, 终于完整实现了珍惜哥文章中的无痕 Hook 框架, 这篇文章记录一下整体的设计思路和技术方向，顺便聊点踩坑经历。
 整个框架的所有无痕能力都是基于 APatch 模块提供的内核 Hook 能力实现, 感谢 APatch !!!
 传统 Hook 能力的弊端这里就不提及了, 珍惜哥已经讲的很清楚了, 在现在的高强度对抗中, 传统 Hook 能力已经有些不足了, 所以我们需要一种新的 Hook 能力来对抗现在的各种高强度检测手段.
-所以 无痕 Hook 诞生了
+所以 无痕 Hook 诞生了 !!!
 框架能力 &amp; 架构 # Hook &amp; Trace &amp; MemRW &amp; ? # 既然从头造轮子, 那就一次搞定目前的需求吧, 所以 hook 框架支持以下能力, 下面会附上原理和一些方案">
   <meta property="og:locale" content="en_us">
   <meta property="og:type" content="article">
@@ -72,7 +72,7 @@
 经段一段时间的摸索, 终于完整实现了珍惜哥文章中的无痕 Hook 框架, 这篇文章记录一下整体的设计思路和技术方向，顺便聊点踩坑经历。
 整个框架的所有无痕能力都是基于 APatch 模块提供的内核 Hook 能力实现, 感谢 APatch !!!
 传统 Hook 能力的弊端这里就不提及了, 珍惜哥已经讲的很清楚了, 在现在的高强度对抗中, 传统 Hook 能力已经有些不足了, 所以我们需要一种新的 Hook 能力来对抗现在的各种高强度检测手段.
-所以 无痕 Hook 诞生了
+所以 无痕 Hook 诞生了 !!!
 框架能力 &amp; 架构 # Hook &amp; Trace &amp; MemRW &amp; ? # 既然从头造轮子, 那就一次搞定目前的需求吧, 所以 hook 框架支持以下能力, 下面会附上原理和一些方案">
 
   
@@ -240,7 +240,7 @@
     "keywords": ["Android","APatch Module","ARM64 Inline Hoook","无痕 Hook","Art Hook"],
     
     "mainEntityOfPage": "true",
-    "wordCount": "1667"
+    "wordCount": "1678"
   }]
   </script>
 
@@ -452,7 +452,7 @@
   <div class="flex flex-row flex-wrap items-center">
     
     
-      <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1667 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">8 mins</span>
+      <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1678 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">8 mins</span>
     
 
     
@@ -619,7 +619,7 @@
 <p>经段一段时间的摸索, 终于完整实现了珍惜哥文章中的无痕 Hook 框架, 这篇文章记录一下整体的设计思路和技术方向，顺便聊点踩坑经历。</p>
 <p>整个框架的所有无痕能力都是基于 APatch 模块提供的内核 Hook 能力实现, 感谢 <a href="https://github.com/bmax121/APatch"  target="_blank" rel="noreferrer">APatch</a> !!!</p>
 <p>传统 Hook 能力的弊端这里就不提及了, 珍惜哥已经讲的很清楚了, 在现在的高强度对抗中, 传统 Hook 能力已经有些不足了, 所以我们需要一种新的 Hook 能力来对抗现在的各种高强度检测手段.</p>
-<p>所以 <strong>无痕 Hook</strong> 诞生了</p>
+<p>所以 <strong>无痕 Hook</strong> 诞生了 !!!</p>
 
 <h2 class="relative group">框架能力 &amp; 架构
     <div id="框架能力--架构" class="anchor"></div>
@@ -709,7 +709,7 @@
 <p>几个关键设计决策:</p>
 <p><strong>Daemon 代理模式</strong>：KPM 先往 Zygote 注入一个 Daemon SO，由它实现所有 SDK 逻辑并通过 syscall 与内核通信。用户模块只需要 include 一个纯声明头文件，通过 Daemon 传入的函数指针表调用能力。这样用户模块极轻量，多模块零代码重复，符号解析和 Hook 句柄管理都集中在 Daemon 一处。</p>
 <p><strong>Zygote 注入</strong>：Daemon SO 只注入到 Zygote 进程常驻，子进程 fork 后按包名按需加载用户模块。好处是不用对每个目标 App 独立注入，Zygote fork 出来的所有进程天然继承。</p>
-<p><strong>鉴权</strong>：KPM 启动时生成 32 字节随机 session key，所有命令必须携带。Manager 端通过签名锚定（校验 APK 签名证书 DER SHA-256）自动获取 key，非 Manager 链路走人工配对码 fallback。</p>
+<p><strong>鉴权</strong>：KPM 启动时生成 32 字节随机 session key，所有命令必须携带。Manager 端通过签名锚定（校验 APK 签名证书 DER SHA-256）自动获取 key，非 Manager 链路走人工配对码 fallback, 防止被测信道检测</p>
 
 <h2 class="relative group">核心技术方向
     <div id="核心技术方向" class="anchor"></div>
@@ -733,7 +733,7 @@
 <p>整个注入链路完全在内核态完成：KPM 读取 Daemon SO 的 ELF 文件、解析重定位、通过页表操作映射幽灵内存、生成 bootstrap 跳板劫持 Zygote 执行流。Daemon 驻留 Zygote 后，fork 出的子进程按包名匹配配置，按需加载用户模块。</p>
 <p>注入编排流程大致是：发现 Zygote PID → 读取 ELF → 内核态 ELF 链接器解析 PT_LOAD 段 + 重定位（含 IFUNC 自修复）→ 幽灵内存映射到 Zygote 用户态地址空间 → 注册 NEEDED 库到符号解析器 → 生成 ARM64 bootstrap 跳板 → <code>task_work_add</code> 劫持执行流。</p>
 <p>用户模块（<code>.ghm</code> 文件）由 Manager App 管理，Daemon 通过自带的 ELF 链接器在幽灵内存中加载，调用 <code>ghostEntry(GhostApi*)</code> 入口。模块开发者只需 include 一个纯声明头文件，不链接任何 SDK 库。</p>
-<p>这里推荐实现一个 Daemon 动态重加载, 更方便测试 &amp; 更新</p>
+<p>这里推荐实现一个 Daemon 动态重加载, 更方便测试 &amp; 更新, 内核 linker 很坑, 尤其是 ifunc</p>
 
 <h3 class="relative group">Shadow Hook (影子页)
     <div id="shadow-hook-影子页" class="anchor"></div>
@@ -954,7 +954,8 @@
     </span>
     
 </h3>
-<p>这是 Trace 的模拟模式：用 unicorn2 引擎在用户态仿真执行目标函数，VIXL 动态生成仿真跳板，整个仿真环境（代码区、仿真栈）全部走幽灵内存。</p>
+<p>这里非常感谢我 Roy 哥提出的真鸡模拟方案 !!!</p>
+<p>这是 Trace 的模拟模式：用 unicorn 引擎在用户态仿真执行目标函数，VIXL 动态生成仿真跳板，整个仿真环境（代码区、仿真栈）全部走幽灵内存。</p>
 <p>GTrace 是独立 SHARED lib <code>libghost_trace.so</code>，唯一导出 <code>ghostTraceGetApi</code> 返回函数指针表，与 mako 同模式由 Daemon lazy load 进幽灵内存。它复用 Daemon 已有的符号解析（不经 <code>dl_iterate_phdr</code>，因为幽灵内存里的 SO 不在 link_map 里）和幽灵内存分配能力。</p>
 <p>模拟 trace 的优势是对目标进程零影响（离线模拟，可控可复现），适合离线静态分析和指令级调试。记录模式则是真实执行流，含内核调度干扰，适合运行时动态分析。</p>
 <p>trace 数据输出为自定义二进制格式（<code>TraceRecord</code> 结构体直写文件），不经 protobuf/leveldb。支持 call annotation 参数值读取（寄存器地址内存→字符串/hexdump 分类）、<code>mem_r</code>/<code>mem_w</code> 注解、SIMD 寄存器 dump（密码学分析场景）。</p>
@@ -1138,7 +1139,7 @@
     
 </h2>
 <p>这个项目从设计到实现断断续续搞了挺久，踩的坑远比上面写的多。</p>
-<p>内核态开发最大的痛苦不是逻辑复杂，而是调试成本——一个 PTE 属性位拼错了，手机直接黑屏重启，有时候连个 dmesg 都不一定准确, 甚至还为 APatch 的 Hook 跳板做了兼容。</p>
+<p>内核态开发最大的痛苦不是逻辑复杂，而是调试成本——一个 PTE 属性位拼错了，手机直接黑屏重启，有时候 dmesg 提供的崩溃日志甚至无法定位, 还为 APatch 的 Hook 跳板做了兼容。</p>
 <p>但架构本身的设计哲学我觉得是有价值的：不是在用户态和反作弊玩猫鼠游戏，而是利用内核态的绝对权限，从物理层面做到&quot;踏雪无痕&quot;。传统 Hook 是在银行里挖坑埋地雷，GhostHook 是在天花板装红外线——东西没动过，但人一进来就触发了。</p>
 <p>项目还在持续迭代，后面有机会再聊聊更多细节。文中如果有描述不准确的地方，欢迎交流指正。</p>
 
