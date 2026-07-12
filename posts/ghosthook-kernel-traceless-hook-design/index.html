@@ -994,7 +994,7 @@
     </span>
     
 </h2>
-<p>这部分聊几个不太关键但确实让人头疼的细节，给后人省点时间。</p>
+<p>这部分聊几个不太关键但确实让人头疼的细节，给各位大佬省点时间。</p>
 <p><strong><code>vmap</code> 多页分配返回同一 PFN</strong></p>
 <p>幽灵内存分配最初用 <code>alloc_pages</code> + <code>vmap</code>，结果发现在某些内核版本上 <code>vmap</code> 对多页分配不装独立 PTE——所有页返回同一个 PFN，用户态多页映射互相覆盖，加载 ELF 时报 <code>missing DT_GNU_HASH</code>。最后改成 <code>vmalloc</code> 区分配，<code>vmalloc</code> 有独立 L3 PTE，<code>vmalloc_to_pfn</code> 逐页返回独立 PFN。<code>alloc_pages</code>+<code>vmap</code> 只留给了单页 fallback 场景。</p>
 <p><strong>跳板池化后的 cache 维护范围</strong></p>
