@@ -255,7 +255,7 @@
     "keywords": ["Android","APatch Module","ARM64 Inline Hook","无痕 Hook","Art Hook"],
     
     "mainEntityOfPage": "https://example.org/posts/ghost-hook-design/",
-    "wordCount": "2043"
+    "wordCount": "2055"
   }]
   </script>
 
@@ -470,7 +470,7 @@
   <div class="flex flex-row flex-wrap items-center">
     
     
-      <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>2043 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">10 mins</span>
+      <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>2055 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">10 mins</span>
     
 
     
@@ -784,7 +784,7 @@
     
 </h3>
 <p>这里要感谢 WX 大佬提出的 <a href="https://bbs.kanxue.com/thread-290304.htm"  target="_blank" rel="noreferrer">Shadow Page 方案</a>, 下面 Art Hook 的隐藏就是根据这个延伸出的 Shaodw Data Page 方案</p>
-<p>这是框架 Inline Hook 的核心方案。核心思路是&quot;同一 VA 在执行和读取之间切换不同物理页&quot;：</p>
+<p>这是框架 <strong>Inline Hook</strong> 和 <strong>指令插桩</strong> 的核心方案。思路是&quot;同一 VA 在执行和读取之间切换不同物理页&quot;：</p>
 <ul>
 <li>执行态映射到 shadow PFN，权限 <code>--x</code>（执行不可读），hook 字节写在 shadow 页</li>
 <li>数据读取触发 DABT，PTE 切到 original PFN，权限 <code>r--</code>，读到干净原始字节</li>
@@ -868,6 +868,8 @@
     </span>
     
 </h3>
+<p>有了 DBI 引擎以后就可以模拟执行指令实现 trace 了, 这里参考了 Frida Gum 的实现, 重构了一下, 感谢 Firda, 感谢开源 !!!</p>
+<p>DBI 主要用于hook跳板的指令重定位和用户态指令模拟, DBI + PTE hook实现起来发现有很多坑, 我就改用shadow page 实现 hook了</p>
 <p>把指令搬到新内存（shadow 页 / 跳板）后，所有 PC 相对寻址指令会算错地址。ARM64 指令 32 位塞不下完整 64 位地址，编译器大量使用相对寻址（<code>B</code>/<code>BL</code>/<code>CBZ</code>/<code>ADRP</code>/<code>LDR literal</code>）。搬到新地址后&quot;向前跳 50 步&quot;会跳到完全错误的地方。</p>
 <p>重定位引擎需要逐条扫描，分类处理:</p>
 <table>
@@ -909,7 +911,6 @@
 </span></span><span style="display:flex;"><span>//   .quad target    // 地址数据贴在后面
 </span></span><span style="display:flex;"><span>// 4 字节 → 多个指令槽，需要提前预算膨胀空间</span></span></code></pre></div></div>
 <p>指令膨胀后需要提前计算 <code>offset_map</code>（原始指令索引 → 克隆页偏移），这也是缺页异常路由时&quot;传送地图&quot;的数据来源。</p>
-<p>有了 DBI 引擎以后就可以模拟执行指令实现 trace 了, 这里参考了 Frida Gum 的实现, 重构了一下, 感谢 Firda, 感谢开源 !!!</p>
 
 <h3 class="relative group">ART Java 方法 Hook
     <div id="art-java-方法-hook" class="anchor"></div>
@@ -1128,7 +1129,7 @@
     </span>
     
 </h2>
-<p>这部分聊几个让人非常头疼的细节，给各位大佬省点时间。</p>
+<p>这部分聊几个让人头疼的细节，给各位大佬省点时间。</p>
 <p><strong><code>vmap</code> 多页分配返回同一 PFN</strong></p>
 <p>幽灵内存分配最初用 <code>alloc_pages</code> + <code>vmap</code>，结果发现在某些内核版本上 <code>vmap</code> 对多页分配不装独立 PTE——所有页返回同一个 PFN，用户态多页映射互相覆盖，加载 ELF 时报 <code>missing DT_GNU_HASH</code>。最后改成 <code>vmalloc</code> 区分配，<code>vmalloc</code> 有独立 L3 PTE，<code>vmalloc_to_pfn</code> 逐页返回独立 PFN。<code>alloc_pages</code>+<code>vmap</code> 只留给了单页 fallback 场景。</p>
 <p><strong>跳板池化后的 cache 维护范围</strong></p>
