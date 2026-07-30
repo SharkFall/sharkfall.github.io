@@ -1,0 +1,1180 @@
+<!doctype html>
+<html
+  lang="en-us"
+  dir="ltr"
+  class="scroll-smooth"
+  data-default-appearance="light"
+  data-auto-appearance="true"><head>
+  <meta charset="utf-8">
+  
+    <meta http-equiv="content-language" content="en-us">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color">
+
+  
+  
+    <title>DPT&#43;ByteVM 加固逆向分析 &middot; SharkFall&#39;s Blog</title>
+    <meta name="title" content="DPT&#43;ByteVM 加固逆向分析 &middot; SharkFall&#39;s Blog">
+  
+
+  
+  
+  
+  
+  
+    
+  
+    
+  
+    
+  
+  
+  
+    <meta name="keywords" content="加固脱壳,DPT,VMP,">
+  
+  
+  
+  <link rel="canonical" href="https://example.org/posts/dpt-byte-vmp-dex-protect/">
+  
+  
+
+  
+  
+  
+
+  
+  <meta property="og:url" content="https://example.org/posts/dpt-byte-vmp-dex-protect/">
+  <meta property="og:site_name" content="SharkFall&#39;s Blog">
+  <meta property="og:title" content="DPT&#43;ByteVM 加固逆向分析">
+  <meta property="og:description" content="前情提要 # 关键词: DPT 加固、 ByteVM、Instrumentation 钩子、byte-VM/VMP, 开始梭哈 !
+最近拿到一个样本, 包名 com.clljda.alert, dex 里就几个类, 全是 IBDaLQvVQXPIEv 这种随机包名 &#43; 一堆 XOR 混淆的字节数组, 典型的壳代码特征, 记录分析一下逆向过程
+Tip 本文由 AI 辅助编写, 可能有 AI 味道比较浓/描述不准确, 各位大佬轻喷">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-07-03T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-07-03T00:00:00+00:00">
+    <meta property="article:tag" content="加固脱壳">
+    <meta property="article:tag" content="DPT">
+    <meta property="article:tag" content="VMP">
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="DPT&#43;ByteVM 加固逆向分析">
+  <meta name="twitter:description" content="前情提要 # 关键词: DPT 加固、 ByteVM、Instrumentation 钩子、byte-VM/VMP, 开始梭哈 !
+最近拿到一个样本, 包名 com.clljda.alert, dex 里就几个类, 全是 IBDaLQvVQXPIEv 这种随机包名 &#43; 一堆 XOR 混淆的字节数组, 典型的壳代码特征, 记录分析一下逆向过程
+Tip 本文由 AI 辅助编写, 可能有 AI 味道比较浓/描述不准确, 各位大佬轻喷">
+
+  
+  
+  
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+  
+    
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+  <link
+    type="text/css"
+    rel="stylesheet"
+    href="/css/main.bundle.min.d8968b5074e51f1df2a14d9e8ab8071f02e54104fdf2df960e0484275b9fe02a27f22b633a79d5a05580f363a0119fb7304eb8d4c358fb0a6760875471fafd61.css"
+    integrity="sha512-2JaLUHTlHx3yoU2eirgHHwLlQQT98t&#43;WDgSEJ1uf4Con8itjOnnVoFWA82OgEZ&#43;3ME641MNY&#43;wpnYIdUcfr9YQ==">
+
+  
+  
+  <script
+    type="text/javascript"
+    src="/js/appearance.min.6f41174b3a05b680820fe08cadbfa5fb7a7ca347b76a0955cdc68b9d8aca1ce24f0547e138cea33bcc7904d551a90afcb1cc7f2d9fe8557075d501419046c08c.js"
+    integrity="sha512-b0EXSzoFtoCCD&#43;CMrb&#43;l&#43;3p8o0e3aglVzcaLnYrKHOJPBUfhOM6jO8x5BNVRqQr8scx/LZ/oVXB11QFBkEbAjA=="></script>
+  
+  
+  
+  
+  
+  
+    
+    <script src="/lib/zoom/zoom.min.umd.a527109b68c082a70f3697716dd72a9d5aa8b545cf800cecbbc7399f2ca6f6e0ce3e431f2062b48bbfa47c9ea42822714060bef309be073f49b9c0e30d318d7b.js" integrity="sha512-pScQm2jAgqcPNpdxbdcqnVqotUXPgAzsu8c5nyym9uDOPkMfIGK0i7&#43;kfJ6kKCJxQGC&#43;8wm&#43;Bz9JucDjDTGNew=="></script>
+  
+
+  
+  
+  
+    
+  
+  
+  
+  
+  
+  
+  
+  
+    
+    <script
+      defer
+      type="text/javascript"
+      id="script-bundle"
+      src="/js/main.bundle.min.6f9e49850a316ceb9908ad4b153b391e55b41bbcee8b408b52410567544eeebe6776aa57d770d75952dc164e6071068a848bdc5cb48c4dbaef04d65b3f442667.js"
+      integrity="sha512-b55JhQoxbOuZCK1LFTs5HlW0G7zui0CLUkEFZ1RO7r5ndqpX13DXWVLcFk5gcQaKhIvcXLSMTbrvBNZbP0QmZw=="
+      data-copy="Copy"
+      data-copied="Copied"></script>
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="24x24" href="/favicon-24x24.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png">
+<link rel="icon" type="image/png" sizes="128x128" href="/favicon-128x128.png">
+<link rel="icon" type="image/png" sizes="256x256" href="/favicon-256x256.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+<link rel="manifest" href="/site.webmanifest">
+
+  
+
+  
+  <script type="application/ld+json">
+  [{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "articleSection": "Posts",
+    "name": "DPT\u002bByteVM 加固逆向分析",
+    "headline": "DPT\u002bByteVM 加固逆向分析",
+    
+    "inLanguage": "en-us",
+    "url" : "https://example.org/posts/dpt-byte-vmp-dex-protect/",
+    "author" : {
+      "@type": "Person",
+      "name": ""
+    },
+    "copyrightYear": "2026",
+    "dateCreated": "2026-07-03T00:00:00\u002b00:00",
+    "datePublished": "2026-07-03T00:00:00\u002b00:00",
+    
+    "dateModified": "2026-07-03T00:00:00\u002b00:00",
+    
+    "keywords": ["加固脱壳","DPT","VMP"],
+    
+    "mainEntityOfPage": "true",
+    "wordCount": "589"
+  }]
+  </script>
+
+
+
+  
+  
+    
+
+
+
+
+  
+
+  
+  
+
+  
+  
+
+  
+  
+</head>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <body class="flex flex-col h-screen m-auto leading-7 max-w-7xl px-6 sm:px-14 md:px-24 lg:px-32 text-lg bg-neutral text-neutral-900 dark:bg-neutral-800 dark:text-neutral bf-scrollbar">
+    <div id="the-top" class="absolute flex self-center">
+      <a
+        class="px-3 py-1 text-sm -translate-y-8 rounded-b-lg bg-primary-200 focus:translate-y-0 dark:bg-neutral-600"
+        href="#main-content">
+        <span class="font-bold text-primary-600 pe-2 dark:text-primary-400">&darr;</span>
+        Skip to main content
+      </a>
+    </div>
+    
+    
+      <div class="main-menu flex items-center w-full gap-2 p-1 pl-0">
+  
+  
+    <a href="/" class="text-base font-medium truncate min-w-0 shrink">
+      SharkFall&rsquo;s Blog
+    </a>
+  
+  <div class="flex items-center ms-auto">
+    <div class="hidden md:flex">
+      <nav class="flex items-center gap-x-5 h-12">
+  
+
+  
+
+  
+
+  
+    
+      <a
+        href="/"
+        class="flex items-center text-base font-medium bf-icon-color-hover"
+        aria-label="Home"
+        title="Home">
+        Home
+      </a>
+    
+    <div class="flex items-center">
+      <button
+        id="appearance-switcher"
+        aria-label="Switch to dark appearance"
+        type="button"
+        class="text-base bf-icon-color-hover"
+        title="Switch to dark appearance">
+        <div class="flex items-center justify-center dark:hidden">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+        </div>
+        <div class="items-center justify-center hidden dark:flex">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+        </div>
+      </button>
+    </div>
+  
+</nav>
+
+
+
+    </div>
+    <div class="flex md:hidden">
+      <div class="flex items-center h-14 gap-4">
+  
+    
+      <a
+        href="/"
+        class="flex items-center justify-center text-base font-medium bf-icon-color-hover"
+        aria-label="Home"
+        title="Home">
+        Home
+      </a>
+    
+
+    <button
+      id="appearance-switcher-mobile"
+      type="button"
+      aria-label="Switch to dark appearance"
+      title="Switch to dark appearance"
+      class="flex items-center justify-center text-neutral-900 hover:text-primary-600 dark:text-neutral-200 dark:hover:text-primary-400">
+      <div class="dark:hidden">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+      </div>
+      <div class="hidden dark:block">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+      </div>
+    </button>
+  
+
+  
+</div>
+
+
+
+
+
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+    
+    <div class="relative flex flex-col grow">
+      <main id="main-content" class="grow">
+        
+  
+  <article>
+    
+    
+
+    
+    <header id="single_header" class="mt-5 max-w-prose">
+      
+      <h1 class="mt-0 text-4xl font-extrabold text-neutral-900 dark:text-neutral">
+        DPT+ByteVM 加固逆向分析
+      </h1>
+      <div class="mt-1 mb-6 text-base text-neutral-500 dark:text-neutral-400 print:hidden">
+        
+
+
+
+
+
+  
+  
+
+
+
+  
+
+  
+  
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+  <div class="flex flex-row flex-wrap items-center">
+    
+    
+      <time datetime="2026-07-03T00:00:00&#43;00:00">July 3, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>589 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">3 mins</span>
+    
+
+    
+    
+  </div>
+
+  
+
+  
+  
+
+
+      </div>
+      
+        
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+    
+    
+<div class="flex author">
+  
+  <div class="place-self-center">
+    
+    
+    <div class="text-2xl sm:text-lg">
+</div>
+  </div>
+</div>
+
+  
+
+  
+
+  
+    <div class="mb-5"></div>
+  
+
+      
+    </header>
+
+    
+    <section class="flex flex-col max-w-full mt-0 prose dark:prose-invert lg:flex-row">
+      
+      
+      
+      
+      
+        <div class="order-first lg:ms-auto px-0 lg:order-last lg:ps-8 lg:max-w-2xs">
+          <div class="toc ps-5 print:hidden lg:sticky lg:top-10">
+            <details
+  open
+  id="TOCView"
+  class="toc-right mt-0 overflow-y-auto overscroll-contain bf-scrollbar rounded-lg -ms-5 ps-5 pe-2 hidden lg:block">
+  <summary
+    class="block py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="min-w-[220px] py-2 border-dotted border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前情提要">前情提要</a></li>
+    <li><a href="#ai-预分析">AI 预分析</a>
+      <ul>
+        <li><a href="#壳的整体结构">壳的整体结构</a></li>
+        <li><a href="#壳字符串解密">壳字符串解密</a></li>
+        <li><a href="#壳-so-加载">壳 SO 加载</a></li>
+      </ul>
+    </li>
+    <li><a href="#dpt-层分析">DPT 层分析</a>
+      <ul>
+        <li><a href="#so-section-解密">SO Section 解密</a></li>
+        <li><a href="#dump--回填字节码">Dump &amp; 回填字节码</a></li>
+        <li><a href="#分析指令抽取实现">分析指令抽取实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#vmp-保护分析">VMP 保护分析</a></li>
+  </ul>
+</nav>
+  </div>
+</details>
+<details class="toc-inside mt-0 overflow-hidden rounded-lg -ms-5 ps-5 lg:hidden">
+  <summary
+    class="py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="py-2 border-dotted border-neutral-300 border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前情提要">前情提要</a></li>
+    <li><a href="#ai-预分析">AI 预分析</a>
+      <ul>
+        <li><a href="#壳的整体结构">壳的整体结构</a></li>
+        <li><a href="#壳字符串解密">壳字符串解密</a></li>
+        <li><a href="#壳-so-加载">壳 SO 加载</a></li>
+      </ul>
+    </li>
+    <li><a href="#dpt-层分析">DPT 层分析</a>
+      <ul>
+        <li><a href="#so-section-解密">SO Section 解密</a></li>
+        <li><a href="#dump--回填字节码">Dump &amp; 回填字节码</a></li>
+        <li><a href="#分析指令抽取实现">分析指令抽取实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#vmp-保护分析">VMP 保护分析</a></li>
+  </ul>
+</nav>
+  </div>
+</details>
+
+
+
+          </div>
+        </div>
+      
+
+
+      <div class="min-w-0 min-h-0 max-w-fit">
+        
+
+        <div class="article-content max-w-prose mb-20">
+          
+<h2 class="relative group">前情提要
+    <div id="前情提要" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%89%8d%e6%83%85%e6%8f%90%e8%a6%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>关键词: DPT 加固、 ByteVM、<code>Instrumentation</code> 钩子、byte-VM/VMP, 开始梭哈 !</p>
+<p>最近拿到一个样本, 包名 <code>com.clljda.alert</code>, dex 里就几个类, 全是 <code>IBDaLQvVQXPIEv</code> 这种随机包名 + 一堆 XOR 混淆的字节数组, 典型的壳代码特征, 记录分析一下逆向过程</p>
+<div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="tip">
+      <div class="flex items-center gap-2 font-semibold text-inherit">
+        <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="currentColor" d="M112.1 454.3c0 6.297 1.816 12.44 5.284 17.69l17.14 25.69c5.25 7.875 17.17 14.28 26.64 14.28h61.67c9.438 0 21.36-6.401 26.61-14.28l17.08-25.68c2.938-4.438 5.348-12.37 5.348-17.7L272 415.1h-160L112.1 454.3zM191.4 .0132C89.44 .3257 16 82.97 16 175.1c0 44.38 16.44 84.84 43.56 115.8c16.53 18.84 42.34 58.23 52.22 91.45c.0313 .25 .0938 .5166 .125 .7823h160.2c.0313-.2656 .0938-.5166 .125-.7823c9.875-33.22 35.69-72.61 52.22-91.45C351.6 260.8 368 220.4 368 175.1C368 78.61 288.9-.2837 191.4 .0132zM192 96.01c-44.13 0-80 35.89-80 79.1C112 184.8 104.8 192 96 192S80 184.8 80 176c0-61.76 50.25-111.1 112-111.1c8.844 0 16 7.159 16 16S200.8 96.01 192 96.01z"/></svg>
+</span></div>
+        <div class="grow">
+          Tip
+        </div>
+      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><p><strong>本文由 AI 辅助编写, 可能有 AI 味道比较浓/描述不准确, 各位大佬轻喷</strong></p></div></div><p>分析工具:</p>
+<ul>
+<li>jadx-mcp</li>
+<li>ida pro</li>
+<li>claude code</li>
+</ul>
+
+<h2 class="relative group">AI 预分析
+    <div id="ai-预分析" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#ai-%e9%a2%84%e5%88%86%e6%9e%90" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>这里丢给 ai 简单分析了一下, 看看结果</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="AI Reverse First"
+    src="/images/dpt-byte-vm/ai_reverse_first.png"
+    ></figure>
+</p>
+<p>这里说博客是因为之前已经分析了一部分, 记录在我的博客, 被打断施法后, 复用继续分析</p>
+<p><strong>首个 <code>.so</code> 是 <code>lib7d1da9313dc6c48cf078a66b509a4361.so</code>, 在 <code>ProxyComponentFactory.instantiateClassLoader()</code> 里经 <code>JniBridge.m0a()</code> 调 <code>System.load()</code> 完成首次加载。</strong></p>
+<p>加载路径长这样:</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>&lt;dataDir&gt;/dpt-libs/&lt;abi&gt;/lib7d1da9313dc6c48cf078a66b509a4361.so</span></span></code></pre></div></div>
+<p>启动 App 以后, 发现解密的 SO 文件没有删除, 还安静的躺在 <code>&lt;dataDir&gt;/dpt-libs/&lt;abi&gt;/</code> 里, 倒是省事了, 直接 copy 一份开始分析</p>
+<p><code>instantiateClassLoader</code> 是 <code>AppComponentFactory</code> 生命周期里最早被框架回调的方法, 早于 <code>instantiateApplication</code>, 更早于 <code>Application.attachBaseContext</code>。所以这里是真正意义上的「第一次」加载点, 后续 <code>ProxyApplication.attachBaseContext</code> 里那一套同样是被 <code>f12j</code> 守护的兜底入口, 正常情况下不会重复执行。</p>
+
+<h3 class="relative group">壳的整体结构
+    <div id="壳的整体结构" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%a3%b3%e7%9a%84%e6%95%b4%e4%bd%93%e7%bb%93%e6%9e%84" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>样本 dex 里的关键类(都在 <code>IBDaLQvVQXPIEv</code> 包下):</p>
+<table>
+  <thead>
+      <tr>
+          <th>类</th>
+          <th>作用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>ProxyComponentFactory</code></td>
+          <td>继承 <code>AppComponentFactory</code>, 壳入口, 拦截所有组件实例化</td>
+      </tr>
+      <tr>
+          <td><code>ProxyApplication</code></td>
+          <td>继承 <code>Application</code>, 兜底加载入口 + 转发到真实 Application</td>
+      </tr>
+      <tr>
+          <td><code>JniBridge</code></td>
+          <td>native 桥, 所有 <code>native</code> 方法都在这, 还有 <code>System.load</code></td>
+      </tr>
+      <tr>
+          <td><code>AbstractC0003d</code></td>
+          <td>字符串常量仓库 + 派生密钥计算</td>
+      </tr>
+      <tr>
+          <td><code>AbstractC0002c</code></td>
+          <td>从 APK 释放并解密 <code>.so</code> 到磁盘</td>
+      </tr>
+      <tr>
+          <td><code>AbstractC0001b</code></td>
+          <td><code>.so</code> 解密实现</td>
+      </tr>
+      <tr>
+          <td><code>AbstractC0005f</code></td>
+          <td>文件名加密(<code>m18b</code>)</td>
+      </tr>
+      <tr>
+          <td><code>AbstractC0000a</code></td>
+          <td>反射 <code>dalvik.system.VMRuntime</code> 取 ABI</td>
+      </tr>
+  </tbody>
+</table>
+<p>整个壳的套路就是经典的 <code>AppComponentFactory</code> 钩子模式:</p>
+<ol>
+<li>在 <code>instantiateClassLoader</code> 这个最早回调里把真实 <code>.so</code> 释放、解密、<code>System.load</code> 进来</li>
+<li>native 侧接管后, 通过 <code>rcf()</code> / <code>rapn()</code> 返回真实的 <code>AppComponentFactory</code> 和 <code>Application</code> 类名</li>
+<li>后续所有 <code>instantiateActivity/Service/Provider/...</code> 全部反射转发给真实的 <code>AppComponentFactory</code></li>
+</ol>
+
+<h3 class="relative group">壳字符串解密
+    <div id="壳字符串解密" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%a3%b3%e5%ad%97%e7%ac%a6%e4%b8%b2%e8%a7%a3%e5%af%86" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>壳里所有字符串都是这种形式:</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> String <span style="color:#a6e22e">m7a</span>(<span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> bArr, <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span> bArr2) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> length <span style="color:#f92672">=</span> bArr2.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> length2 <span style="color:#f92672">=</span> bArr.<span style="color:#a6e22e">length</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> 0;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> i2 <span style="color:#f92672">=</span> 0;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">while</span> (i <span style="color:#f92672">&lt;</span> (AbstractC0000a.<span style="color:#a6e22e">class</span>.<span style="color:#a6e22e">toString</span>().<span style="color:#a6e22e">length</span>() <span style="color:#f92672">+</span> length2)
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">-</span> AbstractC0000a.<span style="color:#a6e22e">class</span>.<span style="color:#a6e22e">toString</span>().<span style="color:#a6e22e">length</span>()) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (i2 <span style="color:#f92672">&gt;=</span> length) {
+</span></span><span style="display:flex;"><span>            i2 <span style="color:#f92672">=</span> 0;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        bArr<span style="color:#f92672">[</span>i<span style="color:#f92672">]</span> <span style="color:#f92672">=</span> (<span style="color:#66d9ef">byte</span>) (bArr<span style="color:#f92672">[</span>i<span style="color:#f92672">]</span> <span style="color:#f92672">^</span> bArr2<span style="color:#f92672">[</span>i2<span style="color:#f92672">]</span>);
+</span></span><span style="display:flex;"><span>        i<span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>        i2<span style="color:#f92672">++</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> String(bArr, StandardCharsets.<span style="color:#a6e22e">UTF_8</span>);
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div></div>
+<p>看着唬人, 其实 <code>+ length2) - class.toString().length()</code> 是自己加自己减, 等价于 <code>i &lt; length2</code>, 纯噪音混淆。剥掉噪音后就是最朴素的<strong>循环异或</strong>:</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">// 去混淆后的等价逻辑</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> 0; i <span style="color:#f92672">&lt;</span> bArr.<span style="color:#a6e22e">length</span>; i<span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>    bArr<span style="color:#f92672">[</span>i<span style="color:#f92672">]</span> <span style="color:#f92672">^=</span> bArr2<span style="color:#f92672">[</span>i <span style="color:#f92672">%</span> bArr2.<span style="color:#a6e22e">length</span><span style="color:#f92672">]</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> String(bArr, UTF_8);</span></span></code></pre></div></div>
+<p>按这个思路把 <code>AbstractC0003d</code> 静态块里的几个字节数组还原出来:</p>
+<table>
+  <thead>
+      <tr>
+          <th>字段</th>
+          <th>还原值</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>f7e</code> (f3a)</td>
+          <td><code>com.clljda.alert</code> (包名)</td>
+      </tr>
+      <tr>
+          <td><code>f8f</code> (f4b)</td>
+          <td><code>1.1.2</code> (版本)</td>
+      </tr>
+      <tr>
+          <td><code>f10h</code> (f5c)</td>
+          <td><code>674b3b282ad3fd769684d79d77547cb1</code> (32 位 hex, 壳/APK 标识)</td>
+      </tr>
+      <tr>
+          <td><code>f11i</code> (f6d)</td>
+          <td><code>lib7d1da9313dc6c48cf078a66b509a4361.so</code> (目标 .so)</td>
+      </tr>
+  </tbody>
+</table>
+
+<h4 class="relative group">派生密钥 —— <code>m15b()</code>
+    <div id="派生密钥--m15b" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%b4%be%e7%94%9f%e5%af%86%e9%92%a5--m15b" aria-label="Anchor">#</a>
+    </span>
+    
+</h4>
+<p><code>AbstractC0003d.m15b()</code> 把上面那些常量拼成解密密钥:</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">m15b</span>() {
+</span></span><span style="display:flex;"><span>    f7e <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> String(f3a).<span style="color:#a6e22e">trim</span>();              <span style="color:#75715e">// &#34;com.clljda.alert&#34;</span>
+</span></span><span style="display:flex;"><span>    f8f <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> String(f4b).<span style="color:#a6e22e">trim</span>();              <span style="color:#75715e">// &#34;1.1.2&#34;</span>
+</span></span><span style="display:flex;"><span>    StringBuilder sb <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> StringBuilder();
+</span></span><span style="display:flex;"><span>    sb.<span style="color:#a6e22e">append</span>(f7e);
+</span></span><span style="display:flex;"><span>    sb.<span style="color:#a6e22e">append</span>(m14a(<span style="color:#66d9ef">new</span> <span style="color:#66d9ef">byte</span><span style="color:#f92672">[]</span>{108}, ...));     <span style="color:#75715e">// 还原出来是 &#34;-&#34;</span>
+</span></span><span style="display:flex;"><span>    sb.<span style="color:#a6e22e">append</span>(f8f);
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 对 &#34;com.clljda.alert-1.1.2&#34; 做类 murmur 哈希</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> 0;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">byte</span> b : sb.<span style="color:#a6e22e">toString</span>().<span style="color:#a6e22e">getBytes</span>()) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">int</span> i2 <span style="color:#f92672">=</span> (i <span style="color:#f92672">^</span> b) <span style="color:#f92672">*</span> 1540483477;
+</span></span><span style="display:flex;"><span>        i <span style="color:#f92672">=</span> i2 <span style="color:#f92672">^</span> (i2 <span style="color:#f92672">&gt;&gt;&gt;</span> 15);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    f9g <span style="color:#f92672">=</span> Integer.<span style="color:#a6e22e">toHexString</span>(i);              <span style="color:#75715e">// ← 这就是解密密钥</span>
+</span></span><span style="display:flex;"><span>    f10h <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> String(f5c).<span style="color:#a6e22e">trim</span>();
+</span></span><span style="display:flex;"><span>    f11i <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> String(f6d).<span style="color:#a6e22e">trim</span>();
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div></div>
+<p>所以 <code>f9g</code> 是对 <code>&quot;com.clljda.alert-1.1.2&quot;</code> 做的 murmur 风格哈希, 这个值会同时用于:</p>
+<ul>
+<li>APK 内加密 <code>.so</code> 的路径段加密(<code>m18b</code>)</li>
+<li>落地后的 <code>.so</code> 文件内容解密(<code>m11b</code>)</li>
+</ul>
+
+<h3 class="relative group">壳 SO 加载
+    <div id="壳-so-加载" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%a3%b3-so-%e5%8a%a0%e8%bd%bd" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p><code>JniBridge.m0a()</code> 是 <code>System.load</code> 的调用者:</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">m0a</span>(String dataDir) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        String abi <span style="color:#f92672">=</span> AbstractC0000a.<span style="color:#a6e22e">m8b</span>();
+</span></span><span style="display:flex;"><span>        File dir <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> File(dataDir <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;/dpt-libs/&#34;</span> <span style="color:#f92672">+</span> abi);
+</span></span><span style="display:flex;"><span>        File<span style="color:#f92672">[]</span> files <span style="color:#f92672">=</span> dir.<span style="color:#a6e22e">listFiles</span>();
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (files <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">for</span> (File f : files) {
+</span></span><span style="display:flex;"><span>                String path <span style="color:#f92672">=</span> f.<span style="color:#a6e22e">getAbsolutePath</span>();
+</span></span><span style="display:flex;"><span>                <span style="color:#66d9ef">if</span> (path.<span style="color:#a6e22e">endsWith</span>(File.<span style="color:#a6e22e">separator</span> <span style="color:#f92672">+</span> AbstractC0003d.<span style="color:#a6e22e">f11i</span>)) {
+</span></span><span style="display:flex;"><span>                    System.<span style="color:#a6e22e">load</span>(path);                       <span style="color:#75715e">// ← 首个 .so 加载</span>
+</span></span><span style="display:flex;"><span>                }
+</span></span><span style="display:flex;"><span>            }
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (Throwable unused) {}
+</span></span><span style="display:flex;"><span>}</span></span></code></pre></div></div>
+<p>加载的就是上一节解密落地的 <code>&lt;dataDir&gt;/dpt-libs/&lt;abi&gt;/lib7d1da9313dc6c48cf078a66b509a4361.so</code>。</p>
+
+<h2 class="relative group">DPT 层分析
+    <div id="dpt-层分析" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#dpt-%e5%b1%82%e5%88%86%e6%9e%90" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">SO Section 解密
+    <div id="so-section-解密" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#so-section-%e8%a7%a3%e5%af%86" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>刚才 copy 的 so 直接丢进 ida 开造 !</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="Ida Lib Enc"
+    src="/images/dpt-byte-vm/ida_enc.png"
+    ></figure>
+</p>
+<p>可以看到 JNI_OnLoad 无法反编译汇编代码, 应该是加密了, 猜测在 <code>init</code> or <code>init_array</code> 里解密, 跳过去分析一下</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="init_array_dpt"
+    src="/images/dpt-byte-vm/init_array_dpt.png"
+    ></figure>
+</p>
+<p>排除无用的 <code>init_array</code> 函数, 找到一个疑似初始化的函数</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="init_dpt"
+    src="/images/dpt-byte-vm/init_dpt.png"
+    ></figure>
+</p>
+<p>静态分析往下走, 疑似解密逻辑</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="dec_dpt_section"
+    src="/images/dpt-byte-vm/dec_dpt_section.png"
+    ></figure>
+</p>
+<p>让 ai 预分析一下, ok 逻辑比较清晰, 解析本地 so, 找 <code>.bitcode</code> 节, 然后解密, 再覆盖内存, 实现解密</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="elf_sec"
+    src="/images/dpt-byte-vm/elf_sec.png"
+    ></figure>
+</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="elf_sec_dec"
+    src="/images/dpt-byte-vm/elf_sec_dec.png"
+    ></figure>
+</p>
+<p>这里有手动修改, ai 还是有点误解</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="dump_sec_bitcode"
+    src="/images/dpt-byte-vm/dump_sec_bitcode.png"
+    ></figure>
+</p>
+<p>直接 dump 到本地, 再填回去, 让 ai 写个脚本解密也行, 这里是标准的 rc4</p>
+
+<h3 class="relative group">Dump &amp; 回填字节码
+    <div id="dump--回填字节码" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#dump--%e5%9b%9e%e5%a1%ab%e5%ad%97%e8%8a%82%e7%a0%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="patch_deced_sec"
+    src="/images/dpt-byte-vm/patch_deced_sec.png"
+    ></figure>
+</p>
+<p>直接 Patch, 再重新 p JNI_OnLoad 函数, 可以看到字节码已经还原了</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="recovered_jni_onload"
+    src="/images/dpt-byte-vm/recovered_jni_onload.png"
+    ></figure>
+</p>
+
+<h3 class="relative group">分析指令抽取实现
+    <div id="分析指令抽取实现" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%88%86%e6%9e%90%e6%8c%87%e4%bb%a4%e6%8a%bd%e5%8f%96%e5%ae%9e%e7%8e%b0" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="dpt_jni_onload"
+    src="/images/dpt-byte-vm/dpt_jni_onload.png"
+    ></figure>
+</p>
+<p>这里和 DPT 官方仓库应该一致的, 疑似没有魔改, 只看关键部分</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="load_class_hook"
+    src="/images/dpt-byte-vm/load_class_hook.png"
+    ></figure>
+</p>
+<p>看到包括 LoadClass, execve, mmap 等 hook 操作, 意图是处理后续还原指令</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="dpt_native_11"
+    src="/images/dpt-byte-vm/dpt_native_11.png"
+    ></figure>
+</p>
+<p>看到注册了 11 个 native 方法, 分别看看</p>
+
+<h2 class="relative group">VMP 保护分析
+    <div id="vmp-保护分析" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#vmp-%e4%bf%9d%e6%8a%a4%e5%88%86%e6%9e%90" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>Jadx 中点开为数不多的 Instrumentation 组件, 可以观察到下面的机构, 非常像 VMP 保护特征</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="Instrumentation Sample"
+    src="/images/dpt-byte-vm/instrumentation_sample.png"
+    ></figure>
+</p>
+<p>跳转到 <code>oOooOoOO000o.LLlLlL1(int i)</code> 方法, 几乎能肯定是 VMP 保护, 推测 <code>LLlLlL1</code> 方法通过<code>索引</code>查找和注册对应的<code>类的native方法入口</code></p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="vmp_stub"
+    src="/images/dpt-byte-vm/vmp_stub.png"
+    ></figure>
+</p>
+<p>开始分析 !</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="OpenCV VMP"
+    src="/images/dpt-byte-vm/opencv_vmp.png"
+    ></figure>
+</p>
+<p>看到 JNI_OnLoad 比较简单, cacheInitial 是一个导入函数, 下面这样, 获取一些类型, 应该是用于参数和报错处理</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="cacheInitial"
+    src="/images/dpt-byte-vm/vmp_cache_init.png"
+    ></figure>
+</p>
+<p>直接看 classes_setup 函数, 注册了 <code>LLlLlL1</code> 方法</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="classes_setup"
+    src="/images/dpt-byte-vm/classes_setup.png"
+    ></figure>
+</p>
+<p>跟进分析 <code>LLlLlL1</code> 方法, 并重命名为 <code>classInit</code>, 没有混淆逻辑非常明显</p>
+<p>根据<code>索引</code>查询<code>类相关信息(包含类名/方法数/方法签名)</code> -&gt; 注册对应的<code>类的native方法入口</code></p>
+<p>让 ai 简单 format 一下, 直接给我还原成源码了 ??</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="class_init"
+    src="/images/dpt-byte-vm/class_init.png"
+    ></figure>
+</p>
+
+          
+          
+          
+        </div>
+        
+        
+
+        
+
+        
+
+      </div>
+    </section>
+
+    
+    <footer class="pt-8 max-w-prose print:hidden">
+      
+  
+    
+    
+    
+    <div class="pt-8">
+      <hr class="border-dotted border-neutral-300 dark:border-neutral-600">
+      <div class="flex justify-between pt-3">
+        <span class="flex flex-col">
+          
+            <a
+              class="flex text-neutral-700 hover:text-primary-600 dark:text-neutral dark:hover:text-primary-400"
+              href="/posts/pixel-6-kernel-diy/">
+              <span class="leading-6">
+                <span class="inline-block rtl:rotate-180">&larr;</span>&ensp;Arm64 Mac DIY Pixel 6 内核踩坑笔记
+              </span>
+            </a>
+            
+              <span class="ms-6 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <time datetime="2026-05-24T00:00:00&#43;00:00">May 24, 2026</time>
+              </span>
+            
+          
+        </span>
+        <span class="flex flex-col items-end">
+          
+            <a
+              class="flex text-right text-neutral-700 hover:text-primary-600 dark:text-neutral dark:hover:text-primary-400"
+              href="/posts/ghost-hook-design/">
+              <span class="leading-6">
+                Android 内核无痕 Hook 框架设计思路&ensp;<span class="inline-block rtl:rotate-180">&rarr;</span>
+              </span>
+            </a>
+            
+              <span class="me-6 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time>
+              </span>
+            
+          
+        </span>
+      </div>
+    </div>
+  
+
+
+      
+    </footer>
+  </article>
+
+        
+
+
+  
+
+
+
+
+
+
+<div
+  id="scroll-to-top"
+  class="fixed bottom-6 end-6 z-50 transform translate-y-4 opacity-0 duration-200">
+  <a
+    href="#the-top"
+    class="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral/50 text-xl text-neutral-700 hover:text-primary-600 dark:bg-neutral-800/50 dark:text-neutral dark:hover:text-primary-400"
+    aria-label="Scroll to top"
+    title="Scroll to top">
+    &uarr;
+  </a>
+</div>
+
+      </main><footer id="site-footer" class="py-10 print:hidden">
+  
+  
+    
+  
+  <div class="flex items-center justify-between">
+    
+    
+      <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          &copy;
+          2026
+          
+      </p>
+    
+
+    
+    
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">
+        
+        
+        Powered by <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://gohugo.io/" target="_blank" rel="noopener noreferrer">Hugo</a> &amp; <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://blowfish.page/" target="_blank" rel="noopener noreferrer">Blowfish</a>
+      </p>
+    
+  </div>
+  
+    <script>
+      mediumZoom(document.querySelectorAll("img:not(.nozoom)"), {
+        margin: 24,
+        background: "rgba(0,0,0,0.5)",
+        scrollOffset: 0,
+      });
+    </script>
+  
+  
+  
+</footer>
+
+    </div>
+  </body>
+  
+</html>

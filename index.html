@@ -196,10 +196,18 @@
 
   
   
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="24x24" href="/favicon-24x24.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png">
+<link rel="icon" type="image/png" sizes="128x128" href="/favicon-128x128.png">
+<link rel="icon" type="image/png" sizes="256x256" href="/favicon-256x256.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+<link rel="manifest" href="/site.webmanifest">
+
   
 
   
@@ -286,22 +294,23 @@
 
   
 
-  <a
-    href="/posts"
-    class="flex items-center text-base font-medium bf-icon-color-hover"
-    title="Posts">
-    Posts
-  </a>
-
   
-
-  
+    
+      <a
+        href="/posts/"
+        class="flex items-center text-base font-medium bf-icon-color-hover"
+        aria-label="Posts"
+        title="Posts">
+        Posts
+      </a>
+    
     <div class="flex items-center">
       <button
         id="appearance-switcher"
-        aria-label="Dark mode switcher"
+        aria-label="Switch to dark appearance"
         type="button"
-        class="text-base bf-icon-color-hover">
+        class="text-base bf-icon-color-hover"
+        title="Switch to dark appearance">
         <div class="flex items-center justify-center dark:hidden">
           <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
 </span>
@@ -320,20 +329,22 @@
     </div>
     <div class="flex md:hidden">
       <div class="flex items-center h-14 gap-4">
-  <a
-    href="/posts"
-    class="flex items-center justify-center text-base font-medium bf-icon-color-hover"
-    title="Posts">
-    Posts
-  </a>
-
   
+    
+      <a
+        href="/posts/"
+        class="flex items-center justify-center text-base font-medium bf-icon-color-hover"
+        aria-label="Posts"
+        title="Posts">
+        Posts
+      </a>
+    
 
-  
     <button
       id="appearance-switcher-mobile"
       type="button"
-      aria-label="Dark mode switcher"
+      aria-label="Switch to dark appearance"
+      title="Switch to dark appearance"
       class="flex items-center justify-center text-neutral-900 hover:text-primary-600 dark:text-neutral-200 dark:hover:text-primary-400">
       <div class="dark:hidden">
         <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
@@ -438,8 +449,10 @@
     
       <p class="text-xs text-neutral-500 dark:text-neutral-400">
         
+        
         Powered by <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
-          href="https://github.com/SharkFall" target="_blank" rel="noopener noreferrer">SharkFall</a> <no value>
+          href="https://gohugo.io/" target="_blank" rel="noopener noreferrer">Hugo</a> &amp; <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://blowfish.page/" target="_blank" rel="noopener noreferrer">Blowfish</a>
       </p>
     
   </div>

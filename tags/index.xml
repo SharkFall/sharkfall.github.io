@@ -4,30 +4,120 @@
     <title>Tags on SharkFall&#39;s Blog</title>
     <link>https://example.org/tags/</link>
     <description>Recent content in Tags on SharkFall&#39;s Blog</description>
-    <generator>Hugo</generator>
+    <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 24 May 2026 00:00:00 +0000</lastBuildDate>
-    <atom:link href="https://example.org/tags/index.xml" rel="self" type="application/rss+xml" />
+    <copyright>© 2026 </copyright>
+    <lastBuildDate>Sun, 12 Jul 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://example.org/tags/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Android</title>
+      <link>https://example.org/tags/android/</link>
+      <pubDate>Sun, 12 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/android/</guid>
+      <description></description>
+      
+    </item>
+    
+    <item>
+      <title>APatch Module</title>
+      <link>https://example.org/tags/apatch-module/</link>
+      <pubDate>Sun, 12 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/apatch-module/</guid>
+      <description></description>
+      
+    </item>
+    
+    <item>
+      <title>ARM64 Inline Hook</title>
+      <link>https://example.org/tags/arm64-inline-hook/</link>
+      <pubDate>Sun, 12 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/arm64-inline-hook/</guid>
+      <description></description>
+      
+    </item>
+    
+    <item>
+      <title>Art Hook</title>
+      <link>https://example.org/tags/art-hook/</link>
+      <pubDate>Sun, 12 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/art-hook/</guid>
+      <description></description>
+      
+    </item>
+    
+    <item>
+      <title>无痕 Hook</title>
+      <link>https://example.org/tags/%E6%97%A0%E7%97%95-hook/</link>
+      <pubDate>Sun, 12 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/%E6%97%A0%E7%97%95-hook/</guid>
+      <description></description>
+      
+    </item>
+    
+    <item>
+      <title>DPT</title>
+      <link>https://example.org/tags/dpt/</link>
+      <pubDate>Fri, 03 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/dpt/</guid>
+      <description></description>
+      
+    </item>
+    
+    <item>
+      <title>VMP</title>
+      <link>https://example.org/tags/vmp/</link>
+      <pubDate>Fri, 03 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/vmp/</guid>
+      <description></description>
+      
+    </item>
+    
+    <item>
+      <title>加固脱壳</title>
+      <link>https://example.org/tags/%E5%8A%A0%E5%9B%BA%E8%84%B1%E5%A3%B3/</link>
+      <pubDate>Fri, 03 Jul 2026 00:00:00 +0000</pubDate>
+      
+      <guid>https://example.org/tags/%E5%8A%A0%E5%9B%BA%E8%84%B1%E5%A3%B3/</guid>
+      <description></description>
+      
+    </item>
+    
     <item>
       <title>Arm64 Mac Compile Kernel</title>
       <link>https://example.org/tags/arm64-mac-compile-kernel/</link>
       <pubDate>Sun, 24 May 2026 00:00:00 +0000</pubDate>
+      
       <guid>https://example.org/tags/arm64-mac-compile-kernel/</guid>
       <description></description>
+      
     </item>
+    
     <item>
       <title>Kernel</title>
       <link>https://example.org/tags/kernel/</link>
       <pubDate>Sun, 24 May 2026 00:00:00 +0000</pubDate>
+      
       <guid>https://example.org/tags/kernel/</guid>
       <description></description>
+      
     </item>
+    
     <item>
       <title>Pixel 6</title>
       <link>https://example.org/tags/pixel-6/</link>
       <pubDate>Sun, 24 May 2026 00:00:00 +0000</pubDate>
+      
       <guid>https://example.org/tags/pixel-6/</guid>
       <description></description>
+      
     </item>
+    
   </channel>
 </rss>

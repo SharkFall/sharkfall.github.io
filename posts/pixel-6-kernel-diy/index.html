@@ -1,0 +1,1443 @@
+<!doctype html>
+<html
+  lang="en-us"
+  dir="ltr"
+  class="scroll-smooth"
+  data-default-appearance="light"
+  data-auto-appearance="true"><head>
+  <meta charset="utf-8">
+  
+    <meta http-equiv="content-language" content="en-us">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color">
+
+  
+  
+    <title>Arm64 Mac DIY Pixel 6 内核踩坑笔记 &middot; SharkFall&#39;s Blog</title>
+    <meta name="title" content="Arm64 Mac DIY Pixel 6 内核踩坑笔记 &middot; SharkFall&#39;s Blog">
+  
+
+  
+  
+  
+  
+  
+    
+  
+    
+  
+    
+  
+  
+  
+    <meta name="keywords" content="Kernel,Pixel 6,Arm64 Mac Compile Kernel,">
+  
+  
+  
+  <link rel="canonical" href="https://example.org/posts/pixel-6-kernel-diy/">
+  
+  
+
+  
+  
+  
+
+  
+  <meta property="og:url" content="https://example.org/posts/pixel-6-kernel-diy/">
+  <meta property="og:site_name" content="SharkFall&#39;s Blog">
+  <meta property="og:title" content="Arm64 Mac DIY Pixel 6 内核踩坑笔记">
+  <meta property="og:description" content="前情提要 # 关键词: Arm64 Mac 编译 Pixel 6 内核及内核模块、rwProcMem33、eBPF 环境, 一文梭哈完整链路
+写这篇 blog 的时候遇到了不少问题，从头开始完整走通了一遍，把这些踩坑经验全整合在这儿，希望能帮到屏幕前的你。
+我的设备是:
+Pixel 6 Android 14 (AP2A.240905.003.F1, Sep 2024) -&gt; 镜像下载 Mac Pro M5 Max 0x0: 最重要的一步 # 区分大小写的磁盘映像 # 这里是第一个坑
+Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑人生。 不要问我怎么知道的，我 &#43;&#43; Mac 的文件系统默认对大小写不敏感，而这对于 Linux 内核编译是致命的。你会遇到：">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-05-24T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-05-24T00:00:00+00:00">
+    <meta property="article:tag" content="Kernel">
+    <meta property="article:tag" content="Pixel 6">
+    <meta property="article:tag" content="Arm64 Mac Compile Kernel">
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Arm64 Mac DIY Pixel 6 内核踩坑笔记">
+  <meta name="twitter:description" content="前情提要 # 关键词: Arm64 Mac 编译 Pixel 6 内核及内核模块、rwProcMem33、eBPF 环境, 一文梭哈完整链路
+写这篇 blog 的时候遇到了不少问题，从头开始完整走通了一遍，把这些踩坑经验全整合在这儿，希望能帮到屏幕前的你。
+我的设备是:
+Pixel 6 Android 14 (AP2A.240905.003.F1, Sep 2024) -&gt; 镜像下载 Mac Pro M5 Max 0x0: 最重要的一步 # 区分大小写的磁盘映像 # 这里是第一个坑
+Danger 这一步跳过的话，后面你会被各种诡异报错折磨到怀疑人生。 不要问我怎么知道的，我 &#43;&#43; Mac 的文件系统默认对大小写不敏感，而这对于 Linux 内核编译是致命的。你会遇到：">
+
+  
+  
+  
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+  
+    
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+  <link
+    type="text/css"
+    rel="stylesheet"
+    href="/css/main.bundle.min.d8968b5074e51f1df2a14d9e8ab8071f02e54104fdf2df960e0484275b9fe02a27f22b633a79d5a05580f363a0119fb7304eb8d4c358fb0a6760875471fafd61.css"
+    integrity="sha512-2JaLUHTlHx3yoU2eirgHHwLlQQT98t&#43;WDgSEJ1uf4Con8itjOnnVoFWA82OgEZ&#43;3ME641MNY&#43;wpnYIdUcfr9YQ==">
+
+  
+  
+  <script
+    type="text/javascript"
+    src="/js/appearance.min.6f41174b3a05b680820fe08cadbfa5fb7a7ca347b76a0955cdc68b9d8aca1ce24f0547e138cea33bcc7904d551a90afcb1cc7f2d9fe8557075d501419046c08c.js"
+    integrity="sha512-b0EXSzoFtoCCD&#43;CMrb&#43;l&#43;3p8o0e3aglVzcaLnYrKHOJPBUfhOM6jO8x5BNVRqQr8scx/LZ/oVXB11QFBkEbAjA=="></script>
+  
+  
+  
+  
+  
+  
+    
+    <script src="/lib/zoom/zoom.min.umd.a527109b68c082a70f3697716dd72a9d5aa8b545cf800cecbbc7399f2ca6f6e0ce3e431f2062b48bbfa47c9ea42822714060bef309be073f49b9c0e30d318d7b.js" integrity="sha512-pScQm2jAgqcPNpdxbdcqnVqotUXPgAzsu8c5nyym9uDOPkMfIGK0i7&#43;kfJ6kKCJxQGC&#43;8wm&#43;Bz9JucDjDTGNew=="></script>
+  
+
+  
+  
+  
+    
+  
+  
+  
+  
+  
+  
+  
+  
+    
+    <script
+      defer
+      type="text/javascript"
+      id="script-bundle"
+      src="/js/main.bundle.min.6f9e49850a316ceb9908ad4b153b391e55b41bbcee8b408b52410567544eeebe6776aa57d770d75952dc164e6071068a848bdc5cb48c4dbaef04d65b3f442667.js"
+      integrity="sha512-b55JhQoxbOuZCK1LFTs5HlW0G7zui0CLUkEFZ1RO7r5ndqpX13DXWVLcFk5gcQaKhIvcXLSMTbrvBNZbP0QmZw=="
+      data-copy="Copy"
+      data-copied="Copied"></script>
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="24x24" href="/favicon-24x24.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png">
+<link rel="icon" type="image/png" sizes="128x128" href="/favicon-128x128.png">
+<link rel="icon" type="image/png" sizes="256x256" href="/favicon-256x256.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+<link rel="manifest" href="/site.webmanifest">
+
+  
+
+  
+  <script type="application/ld+json">
+  [{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "articleSection": "Posts",
+    "name": "Arm64 Mac DIY Pixel 6 内核踩坑笔记",
+    "headline": "Arm64 Mac DIY Pixel 6 内核踩坑笔记",
+    
+    "inLanguage": "en-us",
+    "url" : "https://example.org/posts/pixel-6-kernel-diy/",
+    "author" : {
+      "@type": "Person",
+      "name": ""
+    },
+    "copyrightYear": "2026",
+    "dateCreated": "2026-05-24T00:00:00\u002b00:00",
+    "datePublished": "2026-05-24T00:00:00\u002b00:00",
+    
+    "dateModified": "2026-05-24T00:00:00\u002b00:00",
+    
+    "keywords": ["Kernel","Pixel 6","Arm64 Mac Compile Kernel"],
+    
+    "mainEntityOfPage": "true",
+    "wordCount": "1299"
+  }]
+  </script>
+
+
+
+  
+  
+    
+
+
+
+
+  
+
+  
+  
+
+  
+  
+
+  
+  
+</head>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <body class="flex flex-col h-screen m-auto leading-7 max-w-7xl px-6 sm:px-14 md:px-24 lg:px-32 text-lg bg-neutral text-neutral-900 dark:bg-neutral-800 dark:text-neutral bf-scrollbar">
+    <div id="the-top" class="absolute flex self-center">
+      <a
+        class="px-3 py-1 text-sm -translate-y-8 rounded-b-lg bg-primary-200 focus:translate-y-0 dark:bg-neutral-600"
+        href="#main-content">
+        <span class="font-bold text-primary-600 pe-2 dark:text-primary-400">&darr;</span>
+        Skip to main content
+      </a>
+    </div>
+    
+    
+      <div class="main-menu flex items-center w-full gap-2 p-1 pl-0">
+  
+  
+    <a href="/" class="text-base font-medium truncate min-w-0 shrink">
+      SharkFall&rsquo;s Blog
+    </a>
+  
+  <div class="flex items-center ms-auto">
+    <div class="hidden md:flex">
+      <nav class="flex items-center gap-x-5 h-12">
+  
+
+  
+
+  
+
+  
+    
+      <a
+        href="/"
+        class="flex items-center text-base font-medium bf-icon-color-hover"
+        aria-label="Home"
+        title="Home">
+        Home
+      </a>
+    
+    <div class="flex items-center">
+      <button
+        id="appearance-switcher"
+        aria-label="Switch to dark appearance"
+        type="button"
+        class="text-base bf-icon-color-hover"
+        title="Switch to dark appearance">
+        <div class="flex items-center justify-center dark:hidden">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+        </div>
+        <div class="items-center justify-center hidden dark:flex">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+        </div>
+      </button>
+    </div>
+  
+</nav>
+
+
+
+    </div>
+    <div class="flex md:hidden">
+      <div class="flex items-center h-14 gap-4">
+  
+    
+      <a
+        href="/"
+        class="flex items-center justify-center text-base font-medium bf-icon-color-hover"
+        aria-label="Home"
+        title="Home">
+        Home
+      </a>
+    
+
+    <button
+      id="appearance-switcher-mobile"
+      type="button"
+      aria-label="Switch to dark appearance"
+      title="Switch to dark appearance"
+      class="flex items-center justify-center text-neutral-900 hover:text-primary-600 dark:text-neutral-200 dark:hover:text-primary-400">
+      <div class="dark:hidden">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+      </div>
+      <div class="hidden dark:block">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+      </div>
+    </button>
+  
+
+  
+</div>
+
+
+
+
+
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+    
+    <div class="relative flex flex-col grow">
+      <main id="main-content" class="grow">
+        
+  
+  <article>
+    
+    
+
+    
+    <header id="single_header" class="mt-5 max-w-prose">
+      
+      <h1 class="mt-0 text-4xl font-extrabold text-neutral-900 dark:text-neutral">
+        Arm64 Mac DIY Pixel 6 内核踩坑笔记
+      </h1>
+      <div class="mt-1 mb-6 text-base text-neutral-500 dark:text-neutral-400 print:hidden">
+        
+
+
+
+
+
+  
+  
+
+
+
+  
+
+  
+  
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+  <div class="flex flex-row flex-wrap items-center">
+    
+    
+      <time datetime="2026-05-24T00:00:00&#43;00:00">May 24, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>1299 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">7 mins</span>
+    
+
+    
+    
+  </div>
+
+  
+
+  
+  
+
+
+      </div>
+      
+        
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+    
+    
+<div class="flex author">
+  
+  <div class="place-self-center">
+    
+    
+    <div class="text-2xl sm:text-lg">
+</div>
+  </div>
+</div>
+
+  
+
+  
+
+  
+    <div class="mb-5"></div>
+  
+
+      
+    </header>
+
+    
+    <section class="flex flex-col max-w-full mt-0 prose dark:prose-invert lg:flex-row">
+      
+      
+      
+      
+      
+        <div class="order-first lg:ms-auto px-0 lg:order-last lg:ps-8 lg:max-w-2xs">
+          <div class="toc ps-5 print:hidden lg:sticky lg:top-10">
+            <details
+  open
+  id="TOCView"
+  class="toc-right mt-0 overflow-y-auto overscroll-contain bf-scrollbar rounded-lg -ms-5 ps-5 pe-2 hidden lg:block">
+  <summary
+    class="block py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="min-w-[220px] py-2 border-dotted border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前情提要">前情提要</a></li>
+    <li><a href="#0x0-最重要的一步">0x0: 最重要的一步</a>
+      <ul>
+        <li><a href="#区分大小写的磁盘映像">区分大小写的磁盘映像</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x1-docker-部署-ubuntu">0x1: Docker 部署 Ubuntu</a>
+      <ul>
+        <li><a href="#下载并启动镜像">下载并启动镜像</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x2-配置编译环境">0x2: 配置编译环境</a>
+      <ul>
+        <li><a href="#配置-ubuntu-源">配置 Ubuntu 源</a></li>
+        <li><a href="#安装编译工具包">安装编译工具包</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x3-确认内核源码分支">0x3: 确认内核源码分支</a>
+      <ul>
+        <li><a href="#搜索-commit">搜索 commit</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x4-下载内核源码">0x4: 下载内核源码</a>
+      <ul>
+        <li><a href="#下载-repo-工具">下载 Repo 工具</a></li>
+        <li><a href="#下载源码">下载源码</a></li>
+        <li><a href="#切换到目标-commit">切换到目标 commit</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x5-编译内核">0x5: 编译内核</a>
+      <ul>
+        <li><a href="#skip-ramdisk-">Skip ramdisk ?</a></li>
+        <li><a href="#创建内核配置-fragment">创建内核配置 fragment</a></li>
+        <li><a href="#修改--commit">修改 &amp; Commit</a></li>
+        <li><a href="#开始编译">开始编译</a></li>
+        <li><a href="#卡-google-画面">卡 Google 画面</a></li>
+        <li><a href="#美滋滋使用">美滋滋使用</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x7-编译-rwprocmem33">0x7 编译 rwProcMem33</a>
+      <ul>
+        <li><a href="#拉取仓库">拉取仓库</a></li>
+        <li><a href="#修改内核版本">修改内核版本</a></li>
+        <li><a href="#配置-makefile">配置 MakeFile</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x8-后记">0x8 后记</a></li>
+    <li><a href="#0x9-致谢">0x9 致谢</a></li>
+  </ul>
+</nav>
+  </div>
+</details>
+<details class="toc-inside mt-0 overflow-hidden rounded-lg -ms-5 ps-5 lg:hidden">
+  <summary
+    class="py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="py-2 border-dotted border-neutral-300 border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前情提要">前情提要</a></li>
+    <li><a href="#0x0-最重要的一步">0x0: 最重要的一步</a>
+      <ul>
+        <li><a href="#区分大小写的磁盘映像">区分大小写的磁盘映像</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x1-docker-部署-ubuntu">0x1: Docker 部署 Ubuntu</a>
+      <ul>
+        <li><a href="#下载并启动镜像">下载并启动镜像</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x2-配置编译环境">0x2: 配置编译环境</a>
+      <ul>
+        <li><a href="#配置-ubuntu-源">配置 Ubuntu 源</a></li>
+        <li><a href="#安装编译工具包">安装编译工具包</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x3-确认内核源码分支">0x3: 确认内核源码分支</a>
+      <ul>
+        <li><a href="#搜索-commit">搜索 commit</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x4-下载内核源码">0x4: 下载内核源码</a>
+      <ul>
+        <li><a href="#下载-repo-工具">下载 Repo 工具</a></li>
+        <li><a href="#下载源码">下载源码</a></li>
+        <li><a href="#切换到目标-commit">切换到目标 commit</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x5-编译内核">0x5: 编译内核</a>
+      <ul>
+        <li><a href="#skip-ramdisk-">Skip ramdisk ?</a></li>
+        <li><a href="#创建内核配置-fragment">创建内核配置 fragment</a></li>
+        <li><a href="#修改--commit">修改 &amp; Commit</a></li>
+        <li><a href="#开始编译">开始编译</a></li>
+        <li><a href="#卡-google-画面">卡 Google 画面</a></li>
+        <li><a href="#美滋滋使用">美滋滋使用</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x7-编译-rwprocmem33">0x7 编译 rwProcMem33</a>
+      <ul>
+        <li><a href="#拉取仓库">拉取仓库</a></li>
+        <li><a href="#修改内核版本">修改内核版本</a></li>
+        <li><a href="#配置-makefile">配置 MakeFile</a></li>
+      </ul>
+    </li>
+    <li><a href="#0x8-后记">0x8 后记</a></li>
+    <li><a href="#0x9-致谢">0x9 致谢</a></li>
+  </ul>
+</nav>
+  </div>
+</details>
+
+
+
+          </div>
+        </div>
+      
+
+
+      <div class="min-w-0 min-h-0 max-w-fit">
+        
+
+        <div class="article-content max-w-prose mb-20">
+          
+<h2 class="relative group">前情提要
+    <div id="前情提要" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%89%8d%e6%83%85%e6%8f%90%e8%a6%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>关键词: Arm64 Mac 编译 Pixel 6 内核及内核模块、rwProcMem33、eBPF 环境, 一文梭哈完整链路</p>
+<p>写这篇 blog 的时候遇到了不少问题，从头开始完整走通了一遍，把这些踩坑经验全整合在这儿，希望能帮到屏幕前的你。</p>
+<p>我的设备是:</p>
+<ul>
+<li>Pixel 6 Android 14 (AP2A.240905.003.F1, Sep 2024) -&gt; <a href="https://googledownloads.cn/android/aosp/oriole-ap2a.240905.003.f1-factory-655c44e7.zip"  target="_blank" rel="noreferrer">镜像下载</a></li>
+<li>Mac Pro M5 Max</li>
+</ul>
+
+<h2 class="relative group">0x0: 最重要的一步
+    <div id="0x0-最重要的一步" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x0-%e6%9c%80%e9%87%8d%e8%a6%81%e7%9a%84%e4%b8%80%e6%ad%a5" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">区分大小写的磁盘映像
+    <div id="区分大小写的磁盘映像" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%8c%ba%e5%88%86%e5%a4%a7%e5%b0%8f%e5%86%99%e7%9a%84%e7%a3%81%e7%9b%98%e6%98%a0%e5%83%8f" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p><del>这里是第一个坑</del></p>
+<div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="danger">
+      <div class="flex items-center gap-2 font-semibold text-inherit">
+        <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+<path fill="currentColor"  d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-2.8-5.6-5.6-11.2-9.8-16.8l-50.6 58.8s-81.4-103.6-87.1-110.6C133.1 243.8 112 273.2 112 306.8C112 375.4 162.6 416 225.7 416z"/></svg></span></div>
+        <div class="grow">
+          Danger
+        </div>
+      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><ul>
+<li>这一步跳过的话，后面你会被各种诡异报错折磨到怀疑人生。</li>
+<li>不要问我怎么知道的，我 ++</li>
+</ul></div></div><p>Mac 的文件系统默认对大小写不敏感，而这对于 Linux 内核编译是致命的。你会遇到：</p>
+<ul>
+<li><code>Documentation/Kbuild: Is a directory.</code> — 因为大小写不敏感，<code>Kbuild</code> 和 <code>kbuild</code> 被认成同一个东西</li>
+<li><code>No rule to make target 'net/netfilter/xt_DSCP.o'</code> — <code>xt_DSCP.c</code> 和 <code>xt_dscp.c</code> 傻傻分不清</li>
+<li>以及其他各种&quot;明明文件在那儿你就是找不到&quot;的玄学 bug</li>
+</ul>
+<p><strong>解决方法：创建一个区分大小写的磁盘映像，所有工作全部放在这个映像里。</strong></p>
+<p>打开 <strong>磁盘工具（Disk Utility）</strong>：</p>
+<ol>
+<li>菜单栏 <strong>文件 &gt; 新建映像 &gt; 空白映像</strong></li>
+<li>关键参数：
+<ul>
+<li><strong>名称</strong>：<code>CompileTask</code>（随便）</li>
+<li><strong>大小</strong>：最小不清楚, 我给了 500G</li>
+<li><strong>格式</strong>：<strong>APFS（区分大小写）</strong> 或 APFS（区分大小写，加密）</li>
+</ul>
+</li>
+<li>创建后挂载，你会得到一个 <code>/Volumes/CompileTask/</code> 路径</li>
+</ol>
+<p>创建好之后，在里头建好工作目录：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>mkdir -p /Volumes/CompileTask/docker/workplace</span></span></code></pre></div></div>
+<p>后面的所有操作，工作目录都指向这个区分大小写的磁盘映像，把它当成你的专属 Linux 开发盘。</p>
+
+<h2 class="relative group">0x1: Docker 部署 Ubuntu
+    <div id="0x1-docker-部署-ubuntu" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x1-docker-%e9%83%a8%e7%bd%b2-ubuntu" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p><del>这里是第二个坑</del></p>
+<p>Google 已经停止维护 Mac 上的工具链，只能自己编译或寻找公开可用的。</p>
+<p>在用 Docker 之前也挣扎过，想直接在 Mac 本机编译，奈何没有找到合适的 arm64 交叉编译器，放弃 ~~~</p>
+<p>也尝试过 VMWare 运行 arm64 Ubuntu 22.04，问题并没有解决，仍然没有合适的 arm64 linux 交叉编译器。</p>
+<p><strong>最后 Docker 部署运行 amd64 ubuntu 22.04 完美成功，没想到性能损失微乎其微，感谢 Docker，感谢开源！</strong></p>
+
+<h3 class="relative group">下载并启动镜像
+    <div id="下载并启动镜像" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%b8%8b%e8%bd%bd%e5%b9%b6%e5%90%af%e5%8a%a8%e9%95%9c%e5%83%8f" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>部署 Docker 非常傻瓜式，安装 Docker Desktop 并启动，再打开 shell：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker run -it <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>    --name ubuntu <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>    --platform linux/amd64 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>    -u root <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>    --restart always <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>    -v /Volumes/CompileTask/docker/workplace:/workplace <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>    ubuntu:22.04</span></span></code></pre></div></div>
+<ul>
+<li><code>--name ubuntu</code>：推荐设置，后面操作方便</li>
+<li><code>--platform linux/amd64</code>：<strong>一定要设置</strong>，工具链是适用 amd64 架构的</li>
+<li><code>-v /Volumes/CompileTask/docker/workplace:/workplace</code>：映射我们刚才在区分大小写磁盘映像中建的目录</li>
+</ul>
+<p>启动容器并打开 shell：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker start ubuntu
+</span></span><span style="display:flex;"><span>docker exec -it ubuntu bash</span></span></code></pre></div></div>
+<p>不用了可以关掉：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker stop ubuntu</span></span></code></pre></div></div>
+
+<h2 class="relative group">0x2: 配置编译环境
+    <div id="0x2-配置编译环境" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x2-%e9%85%8d%e7%bd%ae%e7%bc%96%e8%af%91%e7%8e%af%e5%a2%83" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">配置 Ubuntu 源
+    <div id="配置-ubuntu-源" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e9%85%8d%e7%bd%ae-ubuntu-%e6%ba%90" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>记得备份原始的</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cp /etc/apt/sources.list /etc/apt/sources.list.bak
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>cat &gt; /etc/apt/sources.list <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb-src http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb-src http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb-src http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># deb http://mirrors.aliyun.com/ubuntu/ jammy-proposed main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># deb-src http://mirrors.aliyun.com/ubuntu/ jammy-proposed main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">deb-src http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>apt update
+</span></span><span style="display:flex;"><span>apt upgrade</span></span></code></pre></div></div>
+
+<h3 class="relative group">安装编译工具包
+    <div id="安装编译工具包" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%ae%89%e8%a3%85%e7%bc%96%e8%af%91%e5%b7%a5%e5%85%b7%e5%8c%85" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>直接 copy 粘贴即可：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>apt install git automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib gcc-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3 ccache git-lfs gnupg imagemagick libelf-dev libncurses5-dev libsdl1.2-dev rsync cpio adb fastboot python3 libstdc++6 -y</span></span></code></pre></div></div>
+
+<h2 class="relative group">0x3: 确认内核源码分支
+    <div id="0x3-确认内核源码分支" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x3-%e7%a1%ae%e8%ae%a4%e5%86%85%e6%a0%b8%e6%ba%90%e7%a0%81%e5%88%86%e6%94%af" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>直接 shell 获取设备内核信息：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>sharkfall@Shark001:~% adb shell
+</span></span><span style="display:flex;"><span>oriole:/ $ cat /proc/version
+</span></span><span style="display:flex;"><span>Linux version 5.10.198-android13-4-00050-g12f3388846c3-ab11920634 <span style="color:#f92672">(</span>build-user@build-host<span style="color:#f92672">)</span> <span style="color:#f92672">(</span>Android <span style="color:#f92672">(</span>8508608, based on r450784e<span style="color:#f92672">)</span> clang version 14.0.7 <span style="color:#f92672">(</span>https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6<span style="color:#f92672">)</span>, LLD 14.0.7<span style="color:#f92672">)</span> <span style="color:#75715e">#1 SMP PREEMPT Mon Jun 3 20:51:42 UTC 2024</span></span></span></code></pre></div></div>
+<p>关键信息是 <strong>5.10.198-android13-4-00050-g12f3388846c3</strong> 和 <strong>based on r450784e) clang version 14.0.7</strong></p>
+<p>在 <a href="https://source.android.google.cn/docs/setup/build/building-pixel-kernels?hl=zh-cn"  target="_blank" rel="noreferrer">Android Source</a> 中查看 Pixel 6 设备对应分支：</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="Android Source"
+    src="/images/pixel-6-kernel-1/android-source.png"
+    ></figure>
+</p>
+<p>得知代号为 <strong>raviole</strong> 而不是 <strong>oriole</strong>。</p>
+<p>查看了分支 <a href="https://android.googlesource.com/kernel/gs/&#43;log/refs/heads/android-gs-raviole-5.10-android13"  target="_blank" rel="noreferrer">android-gs-raviole-5.10-android13</a> 并没有 commit <strong>12f3388</strong>，开始慌了，哈哈。</p>
+<p>一个小技巧：</p>
+<p>将 kernel 版本中的 git commit hash <strong>12f3388846c3</strong> 直接贴在 <a href="https://android.googlesource.com/kernel/gs/&#43;/12f3388846c3"  target="_blank" rel="noreferrer"><strong>https://android.googlesource.com/kernel/gs/+/12f3388846c3</strong></a> 后访问，可以确认这个 commit 是存在的。</p>
+<p><del>AI 告诉我的，哈哈，然后就没有然后了，知道了存在但不知道在哪个分支等于没知道。</del></p>
+
+<h3 class="relative group">搜索 commit
+    <div id="搜索-commit" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%90%9c%e7%b4%a2-commit" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>直接 git clone 整个仓库, 拉取到本地以后命令查询目标 commit 在哪一个分支</p>
+<p><del>其实手动一个一个点击查找挺快的, 这里属于高射炮打蚊子了</del></p>
+<p><del>网速比较慢的话就可以直接手动查找了, 这里需要下载很多</del></p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@aa0c5f68153d:/workplace# git clone https://android.googlesource.com/kernel/gs -b android-gs-raviole-5.10-android13
+</span></span><span style="display:flex;"><span>Cloning into <span style="color:#e6db74">&#39;gs&#39;</span>...
+</span></span><span style="display:flex;"><span>remote: Finding sources: 100% <span style="color:#f92672">(</span>76596/76596<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>remote: Total <span style="color:#ae81ff">76596</span> <span style="color:#f92672">(</span>delta 4456<span style="color:#f92672">)</span>, reused <span style="color:#ae81ff">19874</span> <span style="color:#f92672">(</span>delta 4456<span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>Receiving objects: 100% <span style="color:#f92672">(</span>76596/76596<span style="color:#f92672">)</span>, 206.72 MiB | 65.00 MiB/s, <span style="color:#66d9ef">done</span>.
+</span></span><span style="display:flex;"><span>Resolving deltas: 100% <span style="color:#f92672">(</span>4456/4456<span style="color:#f92672">)</span>, <span style="color:#66d9ef">done</span>.
+</span></span><span style="display:flex;"><span>Updating files: 100% <span style="color:#f92672">(</span>72137/72137<span style="color:#f92672">)</span>, <span style="color:#66d9ef">done</span>.
+</span></span><span style="display:flex;"><span>warning: the following paths have collided <span style="color:#f92672">(</span>e.g. <span style="color:#66d9ef">case</span>-sensitive paths...</span></span></code></pre></div></div>
+<p>这里拉取到的其实用处不太大, 因为分支没有对上, 只是为了确认正确的分支</p>
+<p><del>但是好像理论上KMI版本不同是不影响的, 应该也可以使用</del></p>
+<p>拉下来以后再命令查询目标 commit 在哪个分支</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@aa0c5f68153d:/workplace/gs# git branch -r --contains 12f3388846c3 | grep raviole
+</span></span><span style="display:flex;"><span>  origin/android-gs-raviole-5.10-android14-qpr3
+</span></span><span style="display:flex;"><span>  origin/android-gs-raviole-5.10-android15
+</span></span><span style="display:flex;"><span>  origin/android-gs-raviole-5.10-android15-qpr1
+</span></span><span style="display:flex;"><span>  origin/android-gs-raviole-5.10-android15-qpr1-beta
+</span></span><span style="display:flex;"><span>  origin/android-gs-raviole-5.10-android15-qpr1-beta3</span></span></code></pre></div></div>
+<p>因为我的手机是 Android 14, 所以这首先查看了 <strong>android-gs-raviole-5.10-android14-qpr3</strong> 分支</p>
+<p>终于, 找到了 commit 12f3388 存在的分支: <a href="https://android.googlesource.com/kernel/gs/&#43;log/refs/heads/android-gs-raviole-5.10-android14-qpr3"  target="_blank" rel="noreferrer">android-gs-raviole-5.10-android14-qpr3</a></p>
+
+<h2 class="relative group">0x4: 下载内核源码
+    <div id="0x4-下载内核源码" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x4-%e4%b8%8b%e8%bd%bd%e5%86%85%e6%a0%b8%e6%ba%90%e7%a0%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>正确的做法是用 Repo 下载完整源码后在本地查, 上面是踩坑时用的方法, 顺便确认了分支</p>
+
+<h3 class="relative group">下载 Repo 工具
+    <div id="下载-repo-工具" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%b8%8b%e8%bd%bd-repo-%e5%b7%a5%e5%85%b7" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>curl https://storage.googleapis.com/git-repo-downloads/repo &gt; /usr/local/bin/repo
+</span></span><span style="display:flex;"><span>chmod +x /usr/local/bin/repo</span></span></code></pre></div></div>
+<p><del>有魔法直接继续，没有的话可以用清华镜像。</del></p>
+
+<h3 class="relative group">下载源码
+    <div id="下载源码" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%b8%8b%e8%bd%bd%e6%ba%90%e7%a0%81" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="danger">
+      <div class="flex items-center gap-2 font-semibold text-inherit">
+        <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+<path fill="currentColor"  d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-2.8-5.6-5.6-11.2-9.8-16.8l-50.6 58.8s-81.4-103.6-87.1-110.6C133.1 243.8 112 273.2 112 306.8C112 375.4 162.6 416 225.7 416z"/></svg></span></div>
+        <div class="grow">
+          Danger
+        </div>
+      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><p>注意一点：先进入你要下载的 AOSP manifest 仓库看看 <code>default.xml</code>，
+重点关注 <code>&lt;project path=&quot;build&quot; name=&quot;kernel/build&quot;</code>，如果 <code>revision</code> 的值为 <code>main</code>，
+请千万不要下载，否则你会发现下载下来之后根本无法 build！
+这是由于 build 仓库和内核源码仓库不同步导致的。</p>
+<ul>
+<li>引用自 <a href="https://bbs.kanxue.com/thread-278647.htm#msg_header_h1_1"  target="_blank" rel="noreferrer">Arm64 Mac DIY Pixel 6 内核踩坑笔记 - 0x1</a></li>
+</ul></div></div><p>分支是 <strong>android-gs-raviole-5.10-android14-qpr3</strong>（上一节确认过的）：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>mkdir pixel-6-a14-5.10-j32 <span style="color:#f92672">&amp;&amp;</span> cd pixel-6-a14-5.10-j32/
+</span></span><span style="display:flex;"><span>repo init -u https://android.googlesource.com/kernel/manifest -b android-gs-raviole-5.10-android14-qpr3
+</span></span><span style="display:flex;"><span>repo sync -j32</span></span></code></pre></div></div>
+<p>使用 Repo 工具会下载包括交叉编译工具链在内的所有依赖，需要等一会儿。</p>
+<p>拉下来以后，惊喜地发现 <code>prebuilts</code> 目录下就有 clang 等交叉编译工具：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>root@e7d43a17936b:/workplace/pixel-6-a14-5.10-j32# ls -il prebuilts/
+</span></span><span style="display:flex;"><span>total <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">472504</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 13:03 bazel
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">654404</span> drwxr-xr-x  <span style="color:#ae81ff">6</span> root root <span style="color:#ae81ff">192</span> May <span style="color:#ae81ff">23</span> 13:39 boot-artifacts
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">645641</span> drwxr-xr-x <span style="color:#ae81ff">18</span> root root <span style="color:#ae81ff">576</span> May <span style="color:#ae81ff">23</span> 13:16 build-tools
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">660063</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 13:55 clang
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">685493</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 14:29 gas
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">399052</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 12:59 gcc
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">465932</span> drwxr-xr-x  <span style="color:#ae81ff">3</span> root root  <span style="color:#ae81ff">96</span> May <span style="color:#ae81ff">23</span> 13:02 jdk
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">474963</span> drwxr-xr-x  <span style="color:#ae81ff">9</span> root root <span style="color:#ae81ff">288</span> May <span style="color:#ae81ff">23</span> 13:06 kernel-build-tools
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">557402</span> drwxr-xr-x <span style="color:#ae81ff">14</span> root root <span style="color:#ae81ff">448</span> May <span style="color:#ae81ff">23</span> 13:07 misc</span></span></code></pre></div></div>
+<p>看来这才是编译内核的正确姿势，不用像之前那样手动下载 LLVM 工具链了。</p>
+
+<h3 class="relative group">切换到目标 commit
+    <div id="切换到目标-commit" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%88%87%e6%8d%a2%e5%88%b0%e7%9b%ae%e6%a0%87-commit" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>repo sync 下来的代码默认在最新状态，需要切到我们设备对应的 commit：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cd private/gs-google
+</span></span><span style="display:flex;"><span>git checkout android-gs-raviole-5.10-android14-qpr3
+</span></span><span style="display:flex;"><span>git reset --hard 12f3388846c3</span></span></code></pre></div></div>
+<div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="danger">
+      <div class="flex items-center gap-2 font-semibold text-inherit">
+        <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+<path fill="currentColor"  d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-2.8-5.6-5.6-11.2-9.8-16.8l-50.6 58.8s-81.4-103.6-87.1-110.6C133.1 243.8 112 273.2 112 306.8C112 375.4 162.6 416 225.7 416z"/></svg></span></div>
+        <div class="grow">
+          Danger
+        </div>
+      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><p><strong>一定要先 <code>git checkout</code> 分支，再 <code>git reset --hard</code> 到目标 commit。</strong>
+否则 repo sync 可能导致代码处于 detached HEAD 状态，部分文件被意外修改，
+编译时会报一堆 <code>incomplete definition of type</code> 错误。</p></div></div>
+<h2 class="relative group">0x5: 编译内核
+    <div id="0x5-编译内核" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x5-%e7%bc%96%e8%af%91%e5%86%85%e6%a0%b8" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">Skip ramdisk ?
+    <div id="skip-ramdisk-" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#skip-ramdisk-" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>pixel 6 的 ramdisk 在 vendor_boot.img 中, 我只需要 boot.img, 所以 skip 了</p>
+<p>如果有的话可以参考 <a href="https://bbs.kanxue.com/thread-278647.htm#msg_header_h2_15"  target="_blank" rel="noreferrer">解包 boot.img</a></p>
+
+<h3 class="relative group">创建内核配置 fragment
+    <div id="创建内核配置-fragment" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%88%9b%e5%bb%ba%e5%86%85%e6%a0%b8%e9%85%8d%e7%bd%ae-fragment" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>单独写一份内核配置，只写我们需要的（支持 kprobes、eBPF 等）：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cat &gt; private/gs-google/arch/arm64/configs/shark.fragment <span style="color:#e6db74">&lt;&lt; &#39;EOF&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># hardware break point and kprobe
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_IKHEADERS=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_HAVE_KPROBES=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_KPROBES=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_KPROBE_EVENTS=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_HAVE_HW_BREAKPOINT=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_HAVE_ARCH_TRACEHOOK=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># kernel module
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_MODULES=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_MODULE_UNLOAD=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_MODVERSIONS=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># eBPF
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_BPF=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_BPF_SYSCALL=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_BPF_JIT=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_HAVE_EBPF_JIT=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_UPROBES=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_UPROBE_EVENTS=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_NET_CLS_BPF=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_NET_ACT_BPF=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">CONFIG_FTRACE=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74"># CONFIG_FTRACE_SYSCALLS=y
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">EOF</span></span></span></code></pre></div></div>
+
+<h3 class="relative group">修改 &amp; Commit
+    <div id="修改--commit" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%bf%ae%e6%94%b9--commit" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>参考原始内核信息</p>
+<p>5.10.198-android13-4-00050-g12f3388846c3-ab11920634</p>
+<p>修改一下 setlocalversion: private/gs-google/scripts/setlocalversion</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="setlocalversion"
+    src="/images/pixel-6-kernel-1/setlocalversion.png"
+    ></figure>
+</p>
+<p>修改为如下, 这里是为了保证编译的 <strong>scmversion</strong> 和原始版本号一致</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="setlocalversion"
+    src="/images/pixel-6-kernel-1/setlocalversion_modify.png"
+    ></figure>
+</p>
+<p>这里需要 commit 一下, 因为我们修改了文件, 直接编译的话会在内核版本后追加一个 <strong>-dirty</strong></p>
+<p>这里只需要本地 cmooit, 不必 push, 这样改动了后面也好处理</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>cd private/gs-google
+</span></span><span style="display:flex;"><span>git add .
+</span></span><span style="display:flex;"><span>git commit -m <span style="color:#e6db74">&#34;&gt; Add: shark.fragment &amp; modify setlocalversion&#34;</span></span></span></code></pre></div></div>
+
+<h3 class="relative group">开始编译
+    <div id="开始编译" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%bc%80%e5%a7%8b%e7%bc%96%e8%af%91" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>再指定编译配置, BUILD_NUMBER, fragment, 开跑</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>BUILD_NUMBER<span style="color:#f92672">=</span><span style="color:#ae81ff">11920634</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>BUILD_CONFIG<span style="color:#f92672">=</span>private/gs-google/build.config.gki.aarch64 <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>GKI_DEFCONFIG_FRAGMENT<span style="color:#f92672">=</span>private/gs-google/arch/arm64/configs/shark.fragment <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>LTO<span style="color:#f92672">=</span>thin build/build.sh -j32 2&gt;&amp;<span style="color:#ae81ff">1</span> | tee build.log</span></span></code></pre></div></div>
+<p>耐心等待，编译完成后在 <code>out/android13-5.10/dist/</code> 目录下可以找到：编译好的 kernel 和 boot 镜像</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Installing kernel modules into staging directory
+</span></span><span style="display:flex;"><span>  DEPMOD  5.10.198-android13-4-00050-g12f3388846c3-ab11920634
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Generating gki_certification_tools.tar.gz
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Generating test_mappings.zip
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Copying files
+</span></span><span style="display:flex;"><span>  arch/arm64/boot/Image
+</span></span><span style="display:flex;"><span>  vmlinux
+</span></span><span style="display:flex;"><span>  System.map
+</span></span><span style="display:flex;"><span>  vmlinux.symvers
+</span></span><span style="display:flex;"><span>  modules.builtin
+</span></span><span style="display:flex;"><span>  modules.builtin.modinfo
+</span></span><span style="display:flex;"><span>  arch/arm64/boot/Image.lz4
+</span></span><span style="display:flex;"><span>  arch/arm64/boot/Image.gz
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Installing UAPI kernel headers:
+</span></span><span style="display:flex;"><span>make: Entering directory <span style="color:#e6db74">&#39;/workplace/pixel-6-a14-5.10/out/android13-5.10/private/gs-google&#39;</span>
+</span></span><span style="display:flex;"><span>  INSTALL /workplace/pixel-6-a14-5.10/out/android13-5.10/kernel_uapi_headers/usr/include
+</span></span><span style="display:flex;"><span>make: Leaving directory <span style="color:#e6db74">&#39;/workplace/pixel-6-a14-5.10/out/android13-5.10/private/gs-google&#39;</span>
+</span></span><span style="display:flex;"><span> Copying kernel UAPI headers to /workplace/pixel-6-a14-5.10/out/android13-5.10/dist/kernel-uapi-headers.tar.gz
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Copying kernel headers to /workplace/pixel-6-a14-5.10/out/android13-5.10/dist/kernel-headers.tar.gz
+</span></span><span style="display:flex;"><span>/workplace/pixel-6-a14-5.10/private/gs-google /workplace/pixel-6-a14-5.10
+</span></span><span style="display:flex;"><span>/workplace/pixel-6-a14-5.10
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Creating system_dlkm image
+</span></span><span style="display:flex;"><span><span style="color:#f92672">========================================================</span>
+</span></span><span style="display:flex;"><span> Files copied to /workplace/pixel-6-a14-5.10/out/android13-5.10/dist
+</span></span><span style="display:flex;"><span>Creating boot-img.tar.gz <span style="color:#66d9ef">for</span> gki-info.txt boot.img boot-gz.img boot-lz4.img
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## 0x6: 刷入测试 &amp; 救砖</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### 刷入新内核</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>进入 bootloader 模式，刷入 boot.img：
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#e6db74">```</span>shell
+</span></span><span style="display:flex;"><span>sharkfall@Shark01:dist% adb reboot bootloader
+</span></span><span style="display:flex;"><span>sharkfall@Shark01:dist% fastboot devices
+</span></span><span style="display:flex;"><span>1A051FDF600FNB	 fastboot
+</span></span><span style="display:flex;"><span>sharkfall@Shark01:dist% fastboot flash boot new-boot.img
+</span></span><span style="display:flex;"><span>Sending <span style="color:#e6db74">&#39;boot_b&#39;</span> <span style="color:#f92672">(</span><span style="color:#ae81ff">65536</span> KB<span style="color:#f92672">)</span>                        OKAY <span style="color:#f92672">[</span>  1.566s<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>Writing <span style="color:#e6db74">&#39;boot_b&#39;</span>                                   OKAY <span style="color:#f92672">[</span>  0.289s<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>Finished. Total time: 1.861s
+</span></span><span style="display:flex;"><span>sharkfall@Shark01:dist% fastboot reboot
+</span></span><span style="display:flex;"><span>Rebooting                                          OKAY <span style="color:#f92672">[</span>  0.000s<span style="color:#f92672">]</span>
+</span></span><span style="display:flex;"><span>Finished. Total time: 0.000s</span></span></code></pre></div></div>
+
+<h3 class="relative group">卡 Google 画面
+    <div id="卡-google-画面" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%8d%a1-google-%e7%94%bb%e9%9d%a2" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>如果刷完开机卡 Google Logo，可以尝试禁用校验</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>fastboot oem disable-verification
+</span></span><span style="display:flex;"><span>fastboot reboot</span></span></code></pre></div></div>
+<p>如果还不行就清除一下数据, 我的设备是第二次重启后提示清理数据, 清理以后就可以开机了</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>fastboot -w
+</span></span><span style="display:flex;"><span>fastboot reboot</span></span></code></pre></div></div>
+
+<h3 class="relative group">美滋滋使用
+    <div id="美滋滋使用" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e7%be%8e%e6%bb%8b%e6%bb%8b%e4%bd%bf%e7%94%a8" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>到这里就 ok 了, 触控 wifi 都没有问题, 内核信息一毛一样</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>sharkfall@Shark001:~% adb shell
+</span></span><span style="display:flex;"><span>oriole:/ $ cat /proc/version
+</span></span><span style="display:flex;"><span>Linux version 5.10.198-android13-4-00050-g12f3388846c3-ab11920634 <span style="color:#f92672">(</span>build-user@build-host<span style="color:#f92672">)</span> <span style="color:#f92672">(</span>Android <span style="color:#f92672">(</span>8508608, based on r450784e<span style="color:#f92672">)</span> clang version 14.0.7 <span style="color:#f92672">(</span>https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6<span style="color:#f92672">)</span>, LLD 14.0.7<span style="color:#f92672">)</span> <span style="color:#75715e">#1 SMP PREEMPT Tue May 26 13:24:36 UTC 2026</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># 下面是原始内核</span>
+</span></span><span style="display:flex;"><span>Linux version 5.10.198-android13-4-00050-g12f3388846c3-ab11920634 <span style="color:#f92672">(</span>build-user@build-host<span style="color:#f92672">)</span> <span style="color:#f92672">(</span>Android <span style="color:#f92672">(</span>8508608, based on r450784e<span style="color:#f92672">)</span> clang version 14.0.7 <span style="color:#f92672">(</span>https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6<span style="color:#f92672">)</span>, LLD 14.0.7<span style="color:#f92672">)</span> <span style="color:#75715e">#1 SMP PREEMPT Mon Jun 3 20:51:42 UTC 2024</span></span></span></code></pre></div></div>
+<p>查看一下刚才设置的几个内核配置</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>oriole:/ $ zcat /proc/config.gz | grep CONFIG_IKHEADERS                                                                
+</span></span><span style="display:flex;"><span>CONFIG_IKHEADERS<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>oriole:/ $ zcat /proc/config.gz | grep PROBES                                                                          
+</span></span><span style="display:flex;"><span>CONFIG_ARCH_SUPPORTS_UPROBES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_KPROBES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_UPROBES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_KRETPROBES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_HAVE_KPROBES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_HAVE_KRETPROBES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>oriole:/ $ zcat /proc/config.gz | grep CONFIG_MODULES                                                                  
+</span></span><span style="display:flex;"><span>CONFIG_MODULES_USE_ELF_RELA<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_MODULES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_MODULES_TREE_LOOKUP<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>oriole:/ $ zcat /proc/config.gz | grep CONFIG_MODULE_UNLOAD                                                            
+</span></span><span style="display:flex;"><span>CONFIG_MODULE_UNLOAD<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>oriole:/ $ zcat /proc/config.gz | grep CONFIG_BPF                                                                      
+</span></span><span style="display:flex;"><span>CONFIG_BPF<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_BPF_SYSCALL<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_BPF_JIT_ALWAYS_ON<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_BPF_JIT_DEFAULT_ON<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_BPF_JIT<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_BPF_LIRC_MODE2<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_BPF_EVENTS<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>oriole:/ $ zcat /proc/config.gz | grep CONFIG_UPROBE                                                                   
+</span></span><span style="display:flex;"><span>CONFIG_UPROBES<span style="color:#f92672">=</span>y
+</span></span><span style="display:flex;"><span>CONFIG_UPROBE_EVENTS<span style="color:#f92672">=</span>y</span></span></code></pre></div></div>
+
+<h2 class="relative group">0x7 编译 rwProcMem33
+    <div id="0x7-编译-rwprocmem33" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x7-%e7%bc%96%e8%af%91-rwprocmem33" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">拉取仓库
+    <div id="拉取仓库" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%8b%89%e5%8f%96%e4%bb%93%e5%ba%93" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>clone 仓库和交叉编译工具到本地</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#75715e"># workplace 目录</span>
+</span></span><span style="display:flex;"><span>git clone https://github.com/kdrag0n/proton-clang --depth<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>git clone https://github.com/abcz316/rwProcMem33</span></span></code></pre></div></div>
+
+<h3 class="relative group">修改内核版本
+    <div id="修改内核版本" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%bf%ae%e6%94%b9%e5%86%85%e6%a0%b8%e7%89%88%e6%9c%ac" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这里可以修改内核版本和 key</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="Android Source"
+    src="/images/pixel-6-kernel-1/rwproc-ver-control.png"
+    ></figure>
+</p>
+
+<h3 class="relative group">配置 MakeFile
+    <div id="配置-makefile" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e9%85%8d%e7%bd%ae-makefile" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>我这里不是直接放进内核源码的 drivers 目录下一起编译, 而是单独编译, 方便后续修改</p>
+<p>可参考下面的 Makefile, 之前用 proton-clang 编译过, 拿来改改直接用, 哈哈</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-makefile" data-lang="makefile"><span style="display:flex;"><span>obj-m <span style="color:#f92672">+=</span> hwBreakpointProc_module.o
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ARCH <span style="color:#f92672">:=</span> arm64
+</span></span><span style="display:flex;"><span>SUBARCH <span style="color:#f92672">:=</span> arm64
+</span></span><span style="display:flex;"><span>LLVM <span style="color:#f92672">:=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>LLVM_IAS <span style="color:#f92672">:=</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>PROTON_CLANG <span style="color:#f92672">:=</span> /workplace/pixel-6-a14-5.10/prebuilts/clang/host/linux-x86/clang-r450784e/bin
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># PROTON_CLANG := /workspace/proton-clang/bin
+</span></span></span><span style="display:flex;"><span>CLANG_TRIPLE <span style="color:#f92672">:=</span> aarch64-linux-gnu-
+</span></span><span style="display:flex;"><span>CROSS_COMPILE <span style="color:#f92672">:=</span> aarch64-linux-gnu-
+</span></span><span style="display:flex;"><span>CROSS_COMPILE_ARM32 <span style="color:#f92672">:=</span> arm-linux-gnueabi-
+</span></span><span style="display:flex;"><span>CC <span style="color:#f92672">:=</span> <span style="color:#66d9ef">$(</span>PROTON_CLANG<span style="color:#66d9ef">)</span>/clang
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>KDIR <span style="color:#f92672">:=</span> /workplace/pixel-6-a14-5.10/out/android13-5.10/private/gs-google
+</span></span><span style="display:flex;"><span>PWD <span style="color:#f92672">:=</span> <span style="color:#66d9ef">$(</span>shell pwd<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>ccflags-y <span style="color:#f92672">:=</span> -Wno-unused-function
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">all</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>	PATH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>PROTON_CLANG<span style="color:#66d9ef">)</span>:<span style="color:#66d9ef">$(</span>PATH<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>	make -C <span style="color:#66d9ef">$(</span>KDIR<span style="color:#66d9ef">)</span> M<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>PWD<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		ARCH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>ARCH<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		SUBARCH<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>SUBARCH<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CROSS_COMPILE<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CROSS_COMPILE<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CROSS_COMPILE_ARM32<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CROSS_COMPILE_ARM32<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CLANG_TRIPLE<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CLANG_TRIPLE<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		CC<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>CC<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		LLVM<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>LLVM<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		LLVM_IAS<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>LLVM_IAS<span style="color:#66d9ef">)</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span>		modules
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">clean</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>	make -C <span style="color:#66d9ef">$(</span>KDIR<span style="color:#66d9ef">)</span> M<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>PWD<span style="color:#66d9ef">)</span> clean
+</span></span></code></pre></div></div>
+<p>报错了, 解决中&hellip;.</p>
+
+<h2 class="relative group">0x8 后记
+    <div id="0x8-后记" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x8-%e5%90%8e%e8%ae%b0" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>这一趟走下来，最大的教训就是：<strong>Mac 上搞内核编译，先建区分大小写的磁盘映像，不能头铁。</strong></p>
+<p>踩坑顺序大致是：</p>
+<ol>
+<li>直接 Mac 本机编译 ← 没有合适的 arm64 交叉编译器，失败</li>
+<li>VMWare arm64 Ubuntu ← 还是没有合适的交叉编译器，失败</li>
+<li>Docker amd64 Ubuntu + 手动 git clone ← 编译过了，但刷进去开不了机</li>
+<li>Docker amd64 Ubuntu + Repo 下载源码 ← 各种诡异编译报错</li>
+<li><strong>区分大小写磁盘映像 + Docker + Repo</strong> ← 终于找到正解</li>
+</ol>
+<p>也是折腾了好一阵才理清，不过搞明白之后回头看，逻辑其实很清楚：内核源码就是给 Linux（区分大小写的文件系统）写的，凑合在 Mac 默认文件系统上跑必然各种水土不服。</p>
+
+<h2 class="relative group">0x9 致谢
+    <div id="0x9-致谢" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#0x9-%e8%87%b4%e8%b0%a2" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>感谢各位大佬的分享，写这篇 blog 参考了一些资料：</p>
+<ul>
+<li><a href="https://blog.seeflower.dev/archives/174/#title-13"  target="_blank" rel="noreferrer">eBPF on Android之打补丁和编译内核修正版</a></li>
+<li><a href="https://knkj55.github.io/2025/07/13/Android%E5%86%85%E6%A0%B8%E7%BC%96%E8%AF%91%E4%B8%8D%E5%AE%8C%E5%85%A8%E6%8C%87%E5%8D%97-%E8%A7%A3%E6%9E%90/#LLVM-1"  target="_blank" rel="noreferrer">Android内核编译不完全指南/解析</a></li>
+<li><a href="https://bbs.kanxue.com/thread-278647.htm#msg_header_h2_7"  target="_blank" rel="noreferrer">将rwProcMem33编译进安卓内核</a></li>
+<li><a href="https://missking.cc/2022/09/05/kernel1-0/"  target="_blank" rel="noreferrer">aosp12内核编译开启硬件断点和kprobes记录</a></li>
+<li><a href="https://github.com/abcz316/rwProcMem33"  target="_blank" rel="noreferrer">rwProcMem33</a></li>
+</ul>
+
+          
+          
+          
+        </div>
+        
+        
+
+        
+
+        
+
+      </div>
+    </section>
+
+    
+    <footer class="pt-8 max-w-prose print:hidden">
+      
+  
+    
+    
+    
+    <div class="pt-8">
+      <hr class="border-dotted border-neutral-300 dark:border-neutral-600">
+      <div class="flex justify-between pt-3">
+        <span class="flex flex-col">
+          
+        </span>
+        <span class="flex flex-col items-end">
+          
+            <a
+              class="flex text-right text-neutral-700 hover:text-primary-600 dark:text-neutral dark:hover:text-primary-400"
+              href="/posts/dpt-byte-vmp-dex-protect/">
+              <span class="leading-6">
+                DPT+ByteVM 加固逆向分析&ensp;<span class="inline-block rtl:rotate-180">&rarr;</span>
+              </span>
+            </a>
+            
+              <span class="me-6 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <time datetime="2026-07-03T00:00:00&#43;00:00">July 3, 2026</time>
+              </span>
+            
+          
+        </span>
+      </div>
+    </div>
+  
+
+
+      
+    </footer>
+  </article>
+
+        
+
+
+  
+
+
+
+
+
+
+<div
+  id="scroll-to-top"
+  class="fixed bottom-6 end-6 z-50 transform translate-y-4 opacity-0 duration-200">
+  <a
+    href="#the-top"
+    class="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral/50 text-xl text-neutral-700 hover:text-primary-600 dark:bg-neutral-800/50 dark:text-neutral dark:hover:text-primary-400"
+    aria-label="Scroll to top"
+    title="Scroll to top">
+    &uarr;
+  </a>
+</div>
+
+      </main><footer id="site-footer" class="py-10 print:hidden">
+  
+  
+    
+  
+  <div class="flex items-center justify-between">
+    
+    
+      <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          &copy;
+          2026
+          
+      </p>
+    
+
+    
+    
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">
+        
+        
+        Powered by <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://gohugo.io/" target="_blank" rel="noopener noreferrer">Hugo</a> &amp; <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://blowfish.page/" target="_blank" rel="noopener noreferrer">Blowfish</a>
+      </p>
+    
+  </div>
+  
+    <script>
+      mediumZoom(document.querySelectorAll("img:not(.nozoom)"), {
+        margin: 24,
+        background: "rgba(0,0,0,0.5)",
+        scrollOffset: 0,
+      });
+    </script>
+  
+  
+  
+</footer>
+
+    </div>
+  </body>
+  
+</html>

@@ -1,0 +1,1468 @@
+<!doctype html>
+<html
+  lang="en-us"
+  dir="ltr"
+  class="scroll-smooth"
+  data-default-appearance="light"
+  data-auto-appearance="true"><head>
+  <meta charset="utf-8">
+  
+    <meta http-equiv="content-language" content="en-us">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="theme-color">
+
+  
+  
+    <title>Android 内核无痕 Hook 框架设计思路 &middot; SharkFall&#39;s Blog</title>
+    <meta name="title" content="Android 内核无痕 Hook 框架设计思路 &middot; SharkFall&#39;s Blog">
+  
+
+  
+  
+  
+  
+  
+    
+  
+    
+  
+    
+  
+  
+  
+    <meta name="keywords" content="Android,APatch Module,ARM64 Inline Hook,无痕 Hook,Art Hook,">
+  
+  
+  
+  <link rel="canonical" href="https://example.org/posts/ghost-hook-design/">
+  
+  
+
+  
+  
+  
+
+  
+  <meta property="og:url" content="https://example.org/posts/ghost-hook-design/">
+  <meta property="og:site_name" content="SharkFall&#39;s Blog">
+  <meta property="og:title" content="Android 内核无痕 Hook 框架设计思路">
+  <meta property="og:description" content="写在前面 # 拜读完珍惜佬写的 Android内核无痕Hook理解和感悟 文章以后, 受益匪浅 !!!
+非常感谢珍惜佬的文章, 解释的非常清楚, 并且给出了很多实现细节, 非常值得学习和借鉴 !!!
+经段一段时间的摸索, 终于完整实现了珍惜佬文章中的无痕 Hook 框架, 这篇文章记录一下整体的设计思路和技术方向，顺便聊点踩坑经历。
+整个框架的所有无痕能力都是基于 APatch 模块提供的内核 Hook 能力实现, 感谢 APatch !!!
+还要感谢 GitRoy 大佬提供的技术支持 !!!
+传统 Hook 能力的弊端这里就不提及了, 珍惜佬已经讲的很清楚了, 在现在的高强度对抗中, 传统 Hook 能力已经有些不足了, 所以我们需要一种新的 Hook 能力来对抗现在的各种高强度检测手段.
+所以 无痕 Hook 诞生了 !!!
+框架能力 &amp; 架构 # Hook &amp; Trace &amp; MemRW &amp; ? # 既然从头造轮子, 那就一次搞定目前的需求吧, 所以框架覆盖了以下方向, 下面会附上原理和一些方案">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-07-12T00:00:00+00:00">
+    <meta property="article:modified_time" content="2026-07-12T00:00:00+00:00">
+    <meta property="article:tag" content="Android">
+    <meta property="article:tag" content="APatch Module">
+    <meta property="article:tag" content="ARM64 Inline Hook">
+    <meta property="article:tag" content="无痕 Hook">
+    <meta property="article:tag" content="Art Hook">
+
+  
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Android 内核无痕 Hook 框架设计思路">
+  <meta name="twitter:description" content="写在前面 # 拜读完珍惜佬写的 Android内核无痕Hook理解和感悟 文章以后, 受益匪浅 !!!
+非常感谢珍惜佬的文章, 解释的非常清楚, 并且给出了很多实现细节, 非常值得学习和借鉴 !!!
+经段一段时间的摸索, 终于完整实现了珍惜佬文章中的无痕 Hook 框架, 这篇文章记录一下整体的设计思路和技术方向，顺便聊点踩坑经历。
+整个框架的所有无痕能力都是基于 APatch 模块提供的内核 Hook 能力实现, 感谢 APatch !!!
+还要感谢 GitRoy 大佬提供的技术支持 !!!
+传统 Hook 能力的弊端这里就不提及了, 珍惜佬已经讲的很清楚了, 在现在的高强度对抗中, 传统 Hook 能力已经有些不足了, 所以我们需要一种新的 Hook 能力来对抗现在的各种高强度检测手段.
+所以 无痕 Hook 诞生了 !!!
+框架能力 &amp; 架构 # Hook &amp; Trace &amp; MemRW &amp; ? # 既然从头造轮子, 那就一次搞定目前的需求吧, 所以框架覆盖了以下方向, 下面会附上原理和一些方案">
+
+  
+  
+  
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+  
+    
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+  
+  <link
+    type="text/css"
+    rel="stylesheet"
+    href="/css/main.bundle.min.d8968b5074e51f1df2a14d9e8ab8071f02e54104fdf2df960e0484275b9fe02a27f22b633a79d5a05580f363a0119fb7304eb8d4c358fb0a6760875471fafd61.css"
+    integrity="sha512-2JaLUHTlHx3yoU2eirgHHwLlQQT98t&#43;WDgSEJ1uf4Con8itjOnnVoFWA82OgEZ&#43;3ME641MNY&#43;wpnYIdUcfr9YQ==">
+
+  
+  
+  <script
+    type="text/javascript"
+    src="/js/appearance.min.6f41174b3a05b680820fe08cadbfa5fb7a7ca347b76a0955cdc68b9d8aca1ce24f0547e138cea33bcc7904d551a90afcb1cc7f2d9fe8557075d501419046c08c.js"
+    integrity="sha512-b0EXSzoFtoCCD&#43;CMrb&#43;l&#43;3p8o0e3aglVzcaLnYrKHOJPBUfhOM6jO8x5BNVRqQr8scx/LZ/oVXB11QFBkEbAjA=="></script>
+  
+  
+  
+  
+  
+  
+    
+    <script src="/lib/zoom/zoom.min.umd.a527109b68c082a70f3697716dd72a9d5aa8b545cf800cecbbc7399f2ca6f6e0ce3e431f2062b48bbfa47c9ea42822714060bef309be073f49b9c0e30d318d7b.js" integrity="sha512-pScQm2jAgqcPNpdxbdcqnVqotUXPgAzsu8c5nyym9uDOPkMfIGK0i7&#43;kfJ6kKCJxQGC&#43;8wm&#43;Bz9JucDjDTGNew=="></script>
+  
+
+  
+  
+  
+    
+  
+  
+  
+  
+  
+  
+  
+  
+    
+    <script
+      defer
+      type="text/javascript"
+      id="script-bundle"
+      src="/js/main.bundle.min.6f9e49850a316ceb9908ad4b153b391e55b41bbcee8b408b52410567544eeebe6776aa57d770d75952dc164e6071068a848bdc5cb48c4dbaef04d65b3f442667.js"
+      integrity="sha512-b55JhQoxbOuZCK1LFTs5HlW0G7zui0CLUkEFZ1RO7r5ndqpX13DXWVLcFk5gcQaKhIvcXLSMTbrvBNZbP0QmZw=="
+      data-copy="Copy"
+      data-copied="Copied"></script>
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="24x24" href="/favicon-24x24.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png">
+<link rel="icon" type="image/png" sizes="128x128" href="/favicon-128x128.png">
+<link rel="icon" type="image/png" sizes="256x256" href="/favicon-256x256.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+<link rel="manifest" href="/site.webmanifest">
+
+  
+
+  
+  <script type="application/ld+json">
+  [{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "articleSection": "Posts",
+    "name": "Android 内核无痕 Hook 框架设计思路",
+    "headline": "Android 内核无痕 Hook 框架设计思路",
+    
+    "inLanguage": "en-us",
+    "url" : "https://example.org/posts/ghost-hook-design/",
+    "author" : {
+      "@type": "Person",
+      "name": ""
+    },
+    "copyrightYear": "2026",
+    "dateCreated": "2026-07-12T00:00:00\u002b00:00",
+    "datePublished": "2026-07-12T00:00:00\u002b00:00",
+    
+    "dateModified": "2026-07-12T00:00:00\u002b00:00",
+    
+    "keywords": ["Android","APatch Module","ARM64 Inline Hook","无痕 Hook","Art Hook"],
+    
+    "mainEntityOfPage": "true",
+    "wordCount": "2063"
+  }]
+  </script>
+
+
+
+  
+  
+    
+
+
+
+
+  
+
+  
+  
+
+  
+  
+
+  
+  
+</head>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <body class="flex flex-col h-screen m-auto leading-7 max-w-7xl px-6 sm:px-14 md:px-24 lg:px-32 text-lg bg-neutral text-neutral-900 dark:bg-neutral-800 dark:text-neutral bf-scrollbar">
+    <div id="the-top" class="absolute flex self-center">
+      <a
+        class="px-3 py-1 text-sm -translate-y-8 rounded-b-lg bg-primary-200 focus:translate-y-0 dark:bg-neutral-600"
+        href="#main-content">
+        <span class="font-bold text-primary-600 pe-2 dark:text-primary-400">&darr;</span>
+        Skip to main content
+      </a>
+    </div>
+    
+    
+      <div class="main-menu flex items-center w-full gap-2 p-1 pl-0">
+  
+  
+    <a href="/" class="text-base font-medium truncate min-w-0 shrink">
+      SharkFall&rsquo;s Blog
+    </a>
+  
+  <div class="flex items-center ms-auto">
+    <div class="hidden md:flex">
+      <nav class="flex items-center gap-x-5 h-12">
+  
+
+  
+
+  
+
+  
+    
+      <a
+        href="/"
+        class="flex items-center text-base font-medium bf-icon-color-hover"
+        aria-label="Home"
+        title="Home">
+        Home
+      </a>
+    
+    <div class="flex items-center">
+      <button
+        id="appearance-switcher"
+        aria-label="Switch to dark appearance"
+        type="button"
+        class="text-base bf-icon-color-hover"
+        title="Switch to dark appearance">
+        <div class="flex items-center justify-center dark:hidden">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+        </div>
+        <div class="items-center justify-center hidden dark:flex">
+          <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+        </div>
+      </button>
+    </div>
+  
+</nav>
+
+
+
+    </div>
+    <div class="flex md:hidden">
+      <div class="flex items-center h-14 gap-4">
+  
+    
+      <a
+        href="/"
+        class="flex items-center justify-center text-base font-medium bf-icon-color-hover"
+        aria-label="Home"
+        title="Home">
+        Home
+      </a>
+    
+
+    <button
+      id="appearance-switcher-mobile"
+      type="button"
+      aria-label="Switch to dark appearance"
+      title="Switch to dark appearance"
+      class="flex items-center justify-center text-neutral-900 hover:text-primary-600 dark:text-neutral-200 dark:hover:text-primary-400">
+      <div class="dark:hidden">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M32 256c0-123.8 100.3-224 223.8-224c11.36 0 29.7 1.668 40.9 3.746c9.616 1.777 11.75 14.63 3.279 19.44C245 86.5 211.2 144.6 211.2 207.8c0 109.7 99.71 193 208.3 172.3c9.561-1.805 16.28 9.324 10.11 16.95C387.9 448.6 324.8 480 255.8 480C132.1 480 32 379.6 32 256z"/></svg>
+</span>
+      </div>
+      <div class="hidden dark:block">
+        <span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/></svg>
+</span>
+      </div>
+    </button>
+  
+
+  
+</div>
+
+
+
+
+
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+    
+    <div class="relative flex flex-col grow">
+      <main id="main-content" class="grow">
+        
+  
+  <article>
+    
+    
+
+    
+    <header id="single_header" class="mt-5 max-w-prose">
+      
+      <h1 class="mt-0 text-4xl font-extrabold text-neutral-900 dark:text-neutral">
+        Android 内核无痕 Hook 框架设计思路
+      </h1>
+      <div class="mt-1 mb-6 text-base text-neutral-500 dark:text-neutral-400 print:hidden">
+        
+
+
+
+
+
+  
+  
+
+
+
+  
+
+  
+  
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+
+  
+    
+  
+
+  
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+  <div class="flex flex-row flex-wrap items-center">
+    
+    
+      <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>2063 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">10 mins</span>
+    
+
+    
+    
+  </div>
+
+  
+
+  
+  
+
+
+      </div>
+      
+        
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+    
+    
+<div class="flex author">
+  
+  <div class="place-self-center">
+    
+    
+    <div class="text-2xl sm:text-lg">
+</div>
+  </div>
+</div>
+
+  
+
+  
+
+  
+    <div class="mb-5"></div>
+  
+
+      
+    </header>
+
+    
+    <section class="flex flex-col max-w-full mt-0 prose dark:prose-invert lg:flex-row">
+      
+      
+      
+      
+      
+        <div class="order-first lg:ms-auto px-0 lg:order-last lg:ps-8 lg:max-w-2xs">
+          <div class="toc ps-5 print:hidden lg:sticky lg:top-10">
+            <details
+  open
+  id="TOCView"
+  class="toc-right mt-0 overflow-y-auto overscroll-contain bf-scrollbar rounded-lg -ms-5 ps-5 pe-2 hidden lg:block">
+  <summary
+    class="block py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="min-w-[220px] py-2 border-dotted border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#写在前面">写在前面</a></li>
+    <li><a href="#框架能力--架构">框架能力 &amp; 架构</a>
+      <ul>
+        <li><a href="#hook--trace--memrw--">Hook &amp; Trace &amp; MemRW &amp; ?</a></li>
+        <li><a href="#ghosthook-架构全景">GhostHook 架构全景</a></li>
+      </ul>
+    </li>
+    <li><a href="#核心技术方向">核心技术方向</a>
+      <ul>
+        <li><a href="#模块化注入--zygote-注入">模块化注入 &amp; Zygote 注入</a></li>
+        <li><a href="#shadow-hook-影子页">Shadow Hook (影子页)</a></li>
+        <li><a href="#幽灵内存-ghost-mem">幽灵内存 (Ghost Mem)</a></li>
+        <li><a href="#hwbp-硬件断点">HWBP 硬件断点</a></li>
+        <li><a href="#指令重定位-dbi">指令重定位 (DBI)</a></li>
+        <li><a href="#art-java-方法-hook">ART Java 方法 Hook</a></li>
+        <li><a href="#无痕内存读写">无痕内存读写</a></li>
+        <li><a href="#vma-dump">VMA Dump</a></li>
+        <li><a href="#内核态-trace-cpu-单步">内核态 Trace (CPU 单步)</a></li>
+        <li><a href="#符号解析">符号解析</a></li>
+        <li><a href="#反调试对抗">反调试对抗</a></li>
+        <li><a href="#跨-fork-子进程继承">跨 Fork 子进程继承</a></li>
+        <li><a href="#dex-动态加载">DEX 动态加载</a></li>
+        <li><a href="#binder--linker-拦截器">Binder / Linker 拦截器</a></li>
+        <li><a href="#so-早期生命周期--jni-trace">SO 早期生命周期 &amp; JNI Trace</a></li>
+        <li><a href="#花指令对抗">花指令对抗</a></li>
+        <li><a href="#多-trace-并发">多 Trace 并发</a></li>
+      </ul>
+    </li>
+    <li><a href="#踩坑杂谈">踩坑杂谈</a></li>
+    <li><a href="#与传统方案的对比">与传统方案的对比</a></li>
+    <li><a href="#模块开发体验">模块开发体验</a></li>
+    <li><a href="#写在最后">写在最后</a></li>
+  </ul>
+</nav>
+  </div>
+</details>
+<details class="toc-inside mt-0 overflow-hidden rounded-lg -ms-5 ps-5 lg:hidden">
+  <summary
+    class="py-1 text-lg font-semibold cursor-pointer bg-neutral-100 text-neutral-800 -ms-5 ps-5 dark:bg-neutral-700 dark:text-neutral-100 lg:hidden">
+    Table of Contents
+  </summary>
+  <div
+    class="py-2 border-dotted border-neutral-300 border-s-1 -ms-5 ps-5 dark:border-neutral-600">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#写在前面">写在前面</a></li>
+    <li><a href="#框架能力--架构">框架能力 &amp; 架构</a>
+      <ul>
+        <li><a href="#hook--trace--memrw--">Hook &amp; Trace &amp; MemRW &amp; ?</a></li>
+        <li><a href="#ghosthook-架构全景">GhostHook 架构全景</a></li>
+      </ul>
+    </li>
+    <li><a href="#核心技术方向">核心技术方向</a>
+      <ul>
+        <li><a href="#模块化注入--zygote-注入">模块化注入 &amp; Zygote 注入</a></li>
+        <li><a href="#shadow-hook-影子页">Shadow Hook (影子页)</a></li>
+        <li><a href="#幽灵内存-ghost-mem">幽灵内存 (Ghost Mem)</a></li>
+        <li><a href="#hwbp-硬件断点">HWBP 硬件断点</a></li>
+        <li><a href="#指令重定位-dbi">指令重定位 (DBI)</a></li>
+        <li><a href="#art-java-方法-hook">ART Java 方法 Hook</a></li>
+        <li><a href="#无痕内存读写">无痕内存读写</a></li>
+        <li><a href="#vma-dump">VMA Dump</a></li>
+        <li><a href="#内核态-trace-cpu-单步">内核态 Trace (CPU 单步)</a></li>
+        <li><a href="#符号解析">符号解析</a></li>
+        <li><a href="#反调试对抗">反调试对抗</a></li>
+        <li><a href="#跨-fork-子进程继承">跨 Fork 子进程继承</a></li>
+        <li><a href="#dex-动态加载">DEX 动态加载</a></li>
+        <li><a href="#binder--linker-拦截器">Binder / Linker 拦截器</a></li>
+        <li><a href="#so-早期生命周期--jni-trace">SO 早期生命周期 &amp; JNI Trace</a></li>
+        <li><a href="#花指令对抗">花指令对抗</a></li>
+        <li><a href="#多-trace-并发">多 Trace 并发</a></li>
+      </ul>
+    </li>
+    <li><a href="#踩坑杂谈">踩坑杂谈</a></li>
+    <li><a href="#与传统方案的对比">与传统方案的对比</a></li>
+    <li><a href="#模块开发体验">模块开发体验</a></li>
+    <li><a href="#写在最后">写在最后</a></li>
+  </ul>
+</nav>
+  </div>
+</details>
+
+
+
+          </div>
+        </div>
+      
+
+
+      <div class="min-w-0 min-h-0 max-w-fit">
+        
+
+        <div class="article-content max-w-prose mb-20">
+          
+<h2 class="relative group">写在前面
+    <div id="写在前面" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%86%99%e5%9c%a8%e5%89%8d%e9%9d%a2" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>拜读完珍惜佬写的 <a href="https://bbs.kanxue.com/thread-290718.htm"  target="_blank" rel="noreferrer">Android内核无痕Hook理解和感悟</a> 文章以后, 受益匪浅 !!!</p>
+<p>非常感谢珍惜佬的文章, 解释的非常清楚, 并且给出了很多实现细节, 非常值得学习和借鉴 !!!</p>
+<p>经段一段时间的摸索, 终于完整实现了珍惜佬文章中的无痕 Hook 框架, 这篇文章记录一下整体的设计思路和技术方向，顺便聊点踩坑经历。</p>
+<p>整个框架的所有无痕能力都是基于 APatch 模块提供的内核 Hook 能力实现, 感谢 <a href="https://github.com/bmax121/APatch"  target="_blank" rel="noreferrer">APatch</a> !!!</p>
+<p>还要感谢 GitRoy 大佬提供的技术支持 !!!</p>
+<p>传统 Hook 能力的弊端这里就不提及了, 珍惜佬已经讲的很清楚了, 在现在的高强度对抗中, 传统 Hook 能力已经有些不足了, 所以我们需要一种新的 Hook 能力来对抗现在的各种高强度检测手段.</p>
+<p>所以 <strong>无痕 Hook</strong> 诞生了 !!!</p>
+
+<h2 class="relative group">框架能力 &amp; 架构
+    <div id="框架能力--架构" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%a1%86%e6%9e%b6%e8%83%bd%e5%8a%9b--%e6%9e%b6%e6%9e%84" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">Hook &amp; Trace &amp; MemRW &amp; ?
+    <div id="hook--trace--memrw--" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#hook--trace--memrw--" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>既然从头造轮子, 那就一次搞定目前的需求吧, 所以框架覆盖了以下方向, 下面会附上原理和一些方案</p>
+<ul>
+<li>模块化注入库</li>
+<li>Zygote 注入 (用于在 App 启动后分发 Hook)</li>
+<li>Inline Hook (基于 Shadow Page 方案)</li>
+<li>基于指令插桩的寄存器快照记录 (基于 Shadow Page 方案)</li>
+<li>指令插桩支持 Before &amp; After 回调 (基于 Shadow Page 方案)</li>
+<li>HWBP 断点 (基于直接操作 ARM64 调试寄存器, 绕过 perf_event 子系统)</li>
+<li>VMA Less 内存分配 (Maps 不可见)</li>
+<li>Art Hook (基于 Shadow Data Page 方案)</li>
+<li>VMA Dump (内核直接遍历目标进程 VMA 链表, 不经 <code>/proc/maps</code>, 无痕读取)</li>
+<li>内存读写 (内核侧走目标页表, 不经 ptrace/procfs, 支持跨进程)</li>
+<li>内核态 Trace (基于 CPU 硬件单步 <code>MDSCR_EL1.SS</code> + <code>SPSR.SS</code>, 每条指令触发 SS 异常采集全量寄存器)</li>
+<li>用户态指令模拟 Trace (基于 dbi 引擎全部走幽灵内存隐藏)</li>
+<li>符号解析 (直接解析ELF 符号表, 不经 <code>dl_iterate_phdr</code>, 用于 Trace 反查符号 / Hook 定位)</li>
+<li>反调试对抗 (内核层拦截 <code>ptrace</code>, 硬件调试寄存器假账本欺骗)</li>
+<li>PC 管控台 (ghost-console + agent 翻译适配层, 设备侧事件 push + 控制 RPC 多路复用)</li>
+<li>DEX 动态加载 (内存字节注入 Java 类, 不落盘)</li>
+<li>Binder / Linker 拦截 (Shadow Hook 拦截 Binder 事务与 dlopen, 零 ArtMethod 改动)</li>
+<li>SO 早期生命周期 &amp; JNI Trace (解决 SO 构造函数早于模块 hook 的时序矛盾)</li>
+<li>花指令对抗 (仿真跟随间接分支, trace 日志还原真实执行路径)</li>
+<li>Daemon 热重载 (不重启 Zygote 热替换 Daemon)</li>
+<li>跨 Fork 子进程继承 (VMA-less PTE 不被 fork 复制, 需手动克隆)</li>
+<li>模块版本兼容 (编译期声明 API 版本约束)</li>
+<li>Dex Dump (感谢 FART 的脱壳思路)</li>
+<li>and more &hellip;</li>
+</ul>
+
+<h3 class="relative group">GhostHook 架构全景
+    <div id="ghosthook-架构全景" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#ghosthook-%e6%9e%b6%e6%9e%84%e5%85%a8%e6%99%af" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>先上一张整体架构图，感受一下模块关系:</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>┌─────────────────────────────────────────────────┐
+</span></span><span style="display:flex;"><span>│              Manager App (EL0)                   │
+</span></span><span style="display:flex;"><span>│   KPM 加载 / 模块管理 / 注入配置 / 事件日志       │
+</span></span><span style="display:flex;"><span>└──────────────────────┬──────────────────────────┘
+</span></span><span style="display:flex;"><span>                       │ syscall (注入配置同步 / 事件轮询)
+</span></span><span style="display:flex;"><span>═══════════════════════╪═══════════════════════════ EL0/EL1
+</span></span><span style="display:flex;"><span>                       ▼
+</span></span><span style="display:flex;"><span>┌─────────────────────────────────────────────────┐
+</span></span><span style="display:flex;"><span>│            KPM 内核模块 (EL1)                     │
+</span></span><span style="display:flex;"><span>│  ┌─────────┬────────┬────────┬──────────────┐  │
+</span></span><span style="display:flex;"><span>│  │  HWBP   │ Shadow │ Ghost  │ Anti-Debug   │  │
+</span></span><span style="display:flex;"><span>│  │ Manager │  Page  │ Memory │ (假账本)      │  │
+</span></span><span style="display:flex;"><span>│  └─────────┴────────┴────────┴──────────────┘  │
+</span></span><span style="display:flex;"><span>│  ┌──────────┬──────────┬───────────────────┐    │
+</span></span><span style="display:flex;"><span>│  │ Mem R/W  │VMA Dump  │  CPU Trace (SS)   │    │
+</span></span><span style="display:flex;"><span>│  │(页表遍历) │(VMA链表) │  (MDSCR.SS+ring)  │    │
+</span></span><span style="display:flex;"><span>│  └──────────┴──────────┴───────────────────┘    │
+</span></span><span style="display:flex;"><span>└──────────────────────┬──────────────────────────┘
+</span></span><span style="display:flex;"><span>                       ▲ syscall（SDK 命令）
+</span></span><span style="display:flex;"><span>═══════════════════════╪═══════════════════════════ EL0/EL1
+</span></span><span style="display:flex;"><span>                       ▼ 返回值 / 事件（daemon 代理）
+</span></span><span style="display:flex;"><span>┌─────────────────────────────────────────────────┐
+</span></span><span style="display:flex;"><span>│              目标进程 (EL0)                       │
+</span></span><span style="display:flex;"><span>│                                                   │
+</span></span><span style="display:flex;"><span>│  Daemon SO (先加载, 幽灵内存中, 全局单例)          │
+</span></span><span style="display:flex;"><span>│  ┌─────────────────────────────────────────┐     │
+</span></span><span style="display:flex;"><span>│  │  GhostApi 函数表实现                     │     │
+</span></span><span style="display:flex;"><span>│  │  syscall 桥接 / 符号解析 / 用户 SO 加载   │     │
+</span></span><span style="display:flex;"><span>│  │  mako (ART Hook) / gtrace (仿真 Trace)   │     │
+</span></span><span style="display:flex;"><span>│  │  dex loader / binder &amp; linker 拦截器     │     │
+</span></span><span style="display:flex;"><span>│  └──────────────────┬──────────────────────┘     │
+</span></span><span style="display:flex;"><span>│                     │ 传入 GhostApi*              │
+</span></span><span style="display:flex;"><span>│  ┌──────────┐ ┌──────────┐ ┌──────────┐         │
+</span></span><span style="display:flex;"><span>│  │ 用户 SO A│ │ 用户 SO B│ │ 用户 SO C│ ← 幽灵内存│
+</span></span><span style="display:flex;"><span>│  │ghostEntry│ │ghostEntry│ │ghostEntry│          │
+</span></span><span style="display:flex;"><span>│  └──────────┘ └──────────┘ └──────────┘         │
+</span></span><span style="display:flex;"><span>└─────────────────────────────────────────────────┘</span></span></code></pre></div></div>
+<p>几个关键设计决策:</p>
+<p><strong>Daemon 代理模式</strong>：KPM 先往 Zygote 注入一个 Daemon SO，由它实现所有 SDK 逻辑并通过 syscall 与内核通信。用户模块只需要 include 一个纯声明头文件，通过 Daemon 传入的函数指针表调用能力。这样用户模块极轻量，多模块零代码重复，符号解析和 Hook 句柄管理都集中在 Daemon 一处。</p>
+<p><strong>Zygote 注入</strong>：Daemon SO 先注入到 Zygote 常驻，子进程 fork 后再按包名按需加载用户模块。常规 Zygote 状态随 fork 延续；VMA-less 映射及其运行状态由 fork 路径显式恢复，确保子进程得到独立、完整的运行环境。</p>
+<p><strong>鉴权</strong>：KPM 启动时生成 32 字节随机 session key，所有命令必须携带。Manager 端通过签名锚定自动获取 key——KPM 编译期内置 Manager 签名证书摘要，鉴权请求到达时在内核态校验调用者 APK 签名是否匹配，命中则缓存 uid 走 fast-path，整个过程无需提权。非 Manager 链路（agent / PC 调试）走人工配对码 fallback：一次性短码，限时消费，防止被测信道检测</p>
+
+<h2 class="relative group">核心技术方向
+    <div id="核心技术方向" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%a0%b8%e5%bf%83%e6%8a%80%e6%9c%af%e6%96%b9%e5%90%91" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+
+<h3 class="relative group">模块化注入 &amp; Zygote 注入
+    <div id="模块化注入--zygote-注入" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%a8%a1%e5%9d%97%e5%8c%96%e6%b3%a8%e5%85%a5--zygote-%e6%b3%a8%e5%85%a5" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>整个注入链路完全在内核态完成：KPM 读取 Daemon SO 的 ELF 文件、解析重定位、通过页表操作映射幽灵内存、生成 bootstrap 跳板劫持 Zygote 执行流。Daemon 驻留 Zygote 后，fork 出的子进程按包名匹配配置，按需加载用户模块。</p>
+<p>注入编排流程大致是：发现 Zygote PID → 读取 ELF → 内核态 ELF 链接器解析 PT_LOAD 段 → 幽灵内存映射到 Zygote 用户态地址空间 → 注册 NEEDED 库到符号解析器 → 重定位（IFUNC 自修复）→ 生成 ARM64 bootstrap 跳板 → <code>task_work_add</code> 劫持执行流。</p>
+<p>用户模块（<code>.ghm</code> 文件）由 Manager App 管理，Daemon 通过自带的 ELF 链接器在幽灵内存中加载，调用 <code>ghostEntry(GhostApi*)</code> 入口。模块开发者只需 include 一个纯声明头文件，不链接任何 SDK 库。</p>
+<p>Daemon 热重载的设计思路是&quot;清场再进场&quot;：先清除 Zygote 上所有已注册的 hook 状态、拆除旧 daemon 幽灵内存映射（含用户态残留 PTE 清理），再重新注入新版本。整个过程不重启 Zygote，开发期迭代效率高。</p>
+<p>内核 linker 有个很坑的点, 是 ifunc 的处理, 要么daemon全自实现函数, 要么就模块入口做一下ifunc的修复, 再进行其它操作</p>
+
+<h3 class="relative group">Shadow Hook (影子页)
+    <div id="shadow-hook-影子页" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#shadow-hook-%e5%bd%b1%e5%ad%90%e9%a1%b5" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这里要感谢 WX 大佬提出的 <a href="https://bbs.kanxue.com/thread-290304.htm"  target="_blank" rel="noreferrer">Shadow Page 方案</a>。下面 Art Hook 使用的 Shadow Data Page 也是由这一思路延伸而来。</p>
+<p>这是框架 <strong>Inline Hook</strong> 和 <strong>指令插桩</strong> 的核心方案。它为同一 VA 维护两份内容视图：original PFN 保存原始字节，shadow PFN 保存 hook 或插桩后的指令。执行与读取通过页权限和异常路由选择各自的视图：</p>
+<ul>
+<li>执行态映射到 shadow PFN，权限为 <code>--x</code>（执行不可读）</li>
+<li>普通数据读取触发 DABT 后，PTE 临时指向 original PFN，权限为 <code>r--</code></li>
+<li>读取完成后的下一次执行触发 IABT，PTE 恢复指向 shadow PFN</li>
+</ul>
+<p>这种双视图设计将原始代码内容、实际执行内容和读取结果分开管理。常规代码读取路径基于 original PFN 计算校验值，执行路径则进入 shadow PFN；完整性观察的结果由观察路径及其可见范围共同决定。</p>
+<p>页表切换以 <code>mm_struct</code> 为作用域。Shadow Page 管理器为同一地址空间内的线程和 CPU 统一维护 PTE 状态、TLB/cache 同步及异常上下文，使执行视图和读取视图在并发访问下保持一致。</p>
+<p>关键前提是目标运行内核已启用并支持 FEAT_EPAN（PAN3），从而允许 EL0 使用 execute-only 映射（执行不可读的 PTE 权限组合）。设备能力由 KPM 在内核侧统一探测；用户态 feature ID 寄存器的可见字段随内核 ABI、版本和配置变化。</p>
+<p>没有 EPAN 的设备使用单页 <code>---</code> 仿真路径：原页完全阻断，KPM 在 fault handler 中软件仿真执行指令。仿真器按层级覆盖：PC-relative 指令使用原始 PC 计算，普通 ALU 和访存指令由软件执行，SIMD/FP 等低频指令通过 backup 页单步兜底。</p>
+<div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="warning">
+      <div class="flex items-center gap-2 font-semibold text-inherit">
+        <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M506.3 417l-213.3-364c-16.33-28-57.54-28-73.98 0l-213.2 364C-10.59 444.9 9.849 480 42.74 480h426.6C502.1 480 522.6 445 506.3 417zM232 168c0-13.25 10.75-24 24-24S280 154.8 280 168v128c0 13.25-10.75 24-23.1 24S232 309.3 232 296V168zM256 416c-17.36 0-31.44-14.08-31.44-31.44c0-17.36 14.07-31.44 31.44-31.44s31.44 14.08 31.44 31.44C287.4 401.9 273.4 416 256 416z"/></svg>
+</span></div>
+        <div class="grow">
+          Warning
+        </div>
+      </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><ul>
+<li>EPAN 设备可使用执行/读取双视图；非 EPAN 设备需要评估内核侧指令仿真的覆盖范围和性能成本。</li>
+<li>能力探测、PTE 属性组合及异常处理路径均以目标内核的实际实现为准。</li>
+</ul></div></div><p>除了 Inline REPLACE，Shadow Page 还支持三种指令插桩模式：</p>
+<ul>
+<li><strong>LISTEN</strong>：命中时发 PRE 事件（寄存器快照），单步原指令，SS 后发 POST 事件。纯监听，不阻断用户回调</li>
+<li><strong>INTERCEPT</strong>：原指令执行后进入用户态 callback，回调通过调用线程栈帧中的寄存器上下文修改寄存器和续算 PC；回调上下文按线程保存，页表视图仍由 mm 级 Shadow Page 管理器协调</li>
+<li><strong>BEFORE_AFTER</strong>：before callback 在原指令前执行，after callback 在原指令后执行，中间靠特定的内核通知机制协调原指令单步</li>
+</ul>
+<p>插桩命中靠特定的未定义指令编码触发异常，handler 内根据 PC 偏移查表判断归属，不需要读取目标 VA 字节。</p>
+
+<h3 class="relative group">幽灵内存 (Ghost Mem)
+    <div id="幽灵内存-ghost-mem" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%b9%bd%e7%81%b5%e5%86%85%e5%ad%98-ghost-mem" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这是整个框架隐身能力的根基。</p>
+<p>常规 <code>mmap</code> 会在进程地址空间中创建 VMA 元数据，<code>/proc/self/maps</code> 按这些元数据枚举映射。仅过滤 <code>show_map_vma</code> 仍会留下可由 <code>mincore</code> 等路径观察到的映射行为。</p>
+<p>幽灵内存的思路是绕过操作系统管理层，直接操作底层页表:</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>function allocGhostMemory(pid, size):
+</span></span><span style="display:flex;"><span>    kernelPage = kernelVmalloc(size)          // 内核态分配物理页
+</span></span><span style="display:flex;"><span>    userVA = findUnusedVASpace(pid)           // 在用户态找一个 VMA 空洞
+</span></span><span style="display:flex;"><span>    // 直接修改目标进程页表，把 kernelPage 的 PFN 挂到 userVA
+</span></span><span style="display:flex;"><span>    // 手工拼装 PTE 属性位
+</span></span><span style="display:flex;"><span>    injectPte(pid-&gt;mm, userVA, kernelPage.pfn)
+</span></span><span style="display:flex;"><span>    flushTLB()                                 // 强制 CPU 认下这张&#34;伪造地契&#34;
+</span></span><span style="display:flex;"><span>    return userVA  // CPU 硬件认可，但 OS 管理层查无此 VMA</span></span></code></pre></div></div>
+<p>Ghost Mem 将映射信息分为硬件页表和 VMA 元数据两层：CPU 的 MMU 依据 PTE 完成访问，常规 VMA 链表枚举则不会返回这段地址。它的设计目标是收敛常规 VMA 枚举面；页表检查、映射一致性检查和内核态观察属于另一条可见性边界，需要在威胁模型中单独评估。</p>
+<p>VMA-less PTE 还需要地址空间保护。<code>get_unmapped_area</code>/<code>mmap_region</code> 的选址依据 VMA，后续普通 mmap 可能选中已由 ghost PTE 占用的 VA。框架在 <code>mmap_region</code> 路径检查重叠，命中时返回 <code>-ENOMEM</code>（fail-closed）；其余会改变地址空间布局的路径也纳入目标内核的兼容性清单。</p>
+
+<h3 class="relative group">HWBP 硬件断点
+    <div id="hwbp-硬件断点" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#hwbp-%e7%a1%ac%e4%bb%b6%e6%96%ad%e7%82%b9" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>ARM64 CPU 内置了调试寄存器，你把目标地址写进去，CPU 每次执行时硬件比较器自动比对，命中就触发异常。整个过程不改一个字节的内存。</p>
+<p>GhostHook 的 HWBP <strong>不经过 perf_event 子系统</strong>，而是在内核态直接操作 ARM64 调试寄存器并接管 debug 异常处理路径。这样做的好处是绕过了 perf_event 路径的检测面</p>
+<p><strong>HWBP注册</strong>。Linux 内核里进程和线程都是 <code>task_struct</code>，HWBP 绑定的是 TID 而非 TGID。只给主线程下断点，子线程走到目标地址根本不会报警。</p>
+<p><strong>数量限制是个硬约束</strong>：HWBP Manager 在初始化阶段读取目标 CPU 的调试能力，并结合内核已占用的槽位计算可分配断点数。执行断点数量随设备和运行环境变化，适合承载数量有限、需要低侵入监听的热点规则；大规模 Hook 由 Shadow Page 等页级机制承担。单条 HWBP 规则可用于追踪入参与返回值：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：按 TID 维护的断点状态
+</span></span><span style="display:flex;"><span>function hwbpHandler(regs):
+</span></span><span style="display:flex;"><span>    state = stateFor(currentTid)
+</span></span><span style="display:flex;"><span>    if state.mode == ENTRY:
+</span></span><span style="display:flex;"><span>        captureArgs(regs)                 // 抓入参
+</span></span><span style="display:flex;"><span>        state.returnStack.push(returnAddr)
+</span></span><span style="display:flex;"><span>        moveBreakpoint(state.returnStack.top())
+</span></span><span style="display:flex;"><span>        state.mode = RETURN
+</span></span><span style="display:flex;"><span>    elif state.mode == RETURN:
+</span></span><span style="display:flex;"><span>        captureReturnValue(regs)          // 抓返回值
+</span></span><span style="display:flex;"><span>        state.returnStack.pop()
+</span></span><span style="display:flex;"><span>        moveBreakpoint(origAddr)
+</span></span><span style="display:flex;"><span>        state.mode = ENTRY</span></span></code></pre></div></div>
+<p>HWBP 状态和返回地址栈按 TID 隔离。递归与重入场景通过可用断点槽位或辅助机制维护嵌套层次；函数体中的普通指令保持原生执行，入口、返回及状态转换点由异常处理接管。</p>
+<p>如果需要替换执行流（不只是监听），就得引入用户态跳板。跳板里有一个&quot;关闸→调原函数→开闸&quot;的流程，避免调原函数时重复触发断点死循环。LR 寄存器的保护是个极易踩坑的点——<code>BLR</code> 指令会覆盖 X30，得找个 callee-saved 寄存器（比如 X20）当&quot;安全屋&quot;暂存原始 LR。</p>
+
+<h3 class="relative group">指令重定位 (DBI)
+    <div id="指令重定位-dbi" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%8c%87%e4%bb%a4%e9%87%8d%e5%ae%9a%e4%bd%8d-dbi" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>有了 DBI 引擎以后就可以模拟执行指令实现 trace 了, 这里参考了 Frida Gum 的实现, 重构了一下, 感谢 Firda, 感谢开源 !!!</p>
+<p>DBI 主要用于hook跳板的指令重定位和用户态指令模拟, DBI + PTE hook实现起来发现有很多坑, 我就改用shadow page 实现 hook了</p>
+<p>把指令搬到新内存（shadow 页 / 跳板）后，所有 PC 相对寻址指令会算错地址。ARM64 指令 32 位塞不下完整 64 位地址，编译器大量使用相对寻址（<code>B</code>/<code>BL</code>/<code>CBZ</code>/<code>ADRP</code>/<code>LDR literal</code>）。搬到新地址后&quot;向前跳 50 步&quot;会跳到完全错误的地方。</p>
+<p>重定位引擎需要逐条扫描，分类处理:</p>
+<table>
+  <thead>
+      <tr>
+          <th>指令类型</th>
+          <th>处理方式</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>B</code>/<code>BL</code> (无条件跳转)</td>
+          <td>超出射程时展开为间接跳转序列，64 位绝对地址硬编码在指令后</td>
+      </tr>
+      <tr>
+          <td><code>B.cond</code>/<code>CBZ</code>/<code>TBZ</code> (条件跳转)</td>
+          <td>射程短必越界，需反转条件 + 远跳序列</td>
+      </tr>
+      <tr>
+          <td><code>ADRP</code>+<code>ADD</code> (PC 相对数据寻址)</td>
+          <td>算出原始绝对地址，改写为 PC-relative 字面量加载</td>
+      </tr>
+      <tr>
+          <td><code>BLR</code> 系列 (带 PAC 的分支)</td>
+          <td>ARMv8.3 PAC 指令需特殊处理，避免污染 LR</td>
+      </tr>
+      <tr>
+          <td>普通算术/访存</td>
+          <td>安全，原样拷贝</td>
+      </tr>
+  </tbody>
+</table>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：远跳展开
+</span></span><span style="display:flex;"><span>// 原始: B target  (4 字节, 射程有限)
+</span></span><span style="display:flex;"><span>// 展开为间接跳转序列:
+</span></span><span style="display:flex;"><span>//   保存暂存寄存器
+</span></span><span style="display:flex;"><span>//   从字面量池加载 64 位绝对地址
+</span></span><span style="display:flex;"><span>//   绝对跳转
+</span></span><span style="display:flex;"><span>//   .quad target    // 地址数据贴在后面
+</span></span><span style="display:flex;"><span>// 4 字节 → 多个指令槽，需要提前预算膨胀空间</span></span></code></pre></div></div>
+<p>指令膨胀后需要提前计算 <code>offset_map</code>（原始指令索引 → 克隆页偏移），这也是缺页异常路由时&quot;传送地图&quot;的数据来源。</p>
+
+<h3 class="relative group">ART Java 方法 Hook
+    <div id="art-java-方法-hook" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#art-java-%e6%96%b9%e6%b3%95-hook" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>ART 虚拟机里每个 Java 方法对应一个 <code>ArtMethod</code> 结构体，其中 <code>entry_point</code> 指针指向编译后的机器码入口。传统 LSPlant 方案是替换这个指针指向自定义跳板，但反作弊会扫描所有 <code>ArtMethod</code> 的 <code>entry_point</code>，检查指针是否指向合法的 <code>boot.art</code> 或 OAT 文件区域。</p>
+<p>GhostHook 的 ART 路径采用 <strong>Shadow Data Page</strong> 管理 <code>entry_point</code>。原始 ArtMethod 数据页保留原始字段，shadow 副本保存 hook 后的入口；DABT 发生后，访问来源决定本次访问看到的页视图，ART 运行时代码读取 shadow 页，其余读取路径读取原始页。</p>
+<p>同页多条 ArtMethod 共享一张 shadow 页，并由增量 patch 管理。页内写入通过差分同步合并：hook 字段保持目标入口，其他字段跟随原始页更新。Shadow Data Page 复用 mm 级页表协调、并发访问和 TLB 一致性机制。</p>
+<p>ART hook 引擎（mako）是独立 SHARED lib，不静态链入 Daemon SO。Manager 开关启用时把路径推到 KPM 缓存，Daemon 首次调用 <code>artHook</code> 时 lazy load 进幽灵内存。mako 的跳板池也走幽灵内存（经适配层注入 <code>ghostMalloc(RWX)</code>），不引入常规 maps 区段。shorty 取值用反射 <code>Method.getReturnType</code> + <code>getParameterTypes</code> 自拼，不依赖 libart 内部符号。ArtMethod 字段布局、偏移和可用入口由 Android/ART 版本适配层管理，未匹配版本走失败降级。</p>
+<p>定位 Java 方法有两条路径：按 className + methodName + sig 走标准反射，或直接拿反射 <code>Method</code> 对象——后者跳过符号解析，适合 hook 隐藏 API 等不可经标准路径定位的方法。两条路径殊途同归，最终都落到 mako 的 ArtMethod 入口替换上。</p>
+<p>反射类加载的设计思路是预解析：在 daemon 初始化时把反射链句柄全部解析为全局缓存，fork 继承，后续调用时不再触发 JNI 查找，把开销压到最小。</p>
+<p>这里 mako hook 是我之前写的 art hook 框架, 选择用外挂加载的方式主要是考虑到两个原因:</p>
+<ul>
+<li>1.内核态 linker 实现限制较多, 还有奇奇怪怪的问题, 所以换到 daemon 动态加载</li>
+<li>2.按需加载, 节省内存, 提高效率, 不需要 hook 就可以不加载, 用户态 trace 加载模式也是这样设计的</li>
+</ul>
+
+<h3 class="relative group">无痕内存读写
+    <div id="无痕内存读写" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%97%a0%e7%97%95%e5%86%85%e5%ad%98%e8%af%bb%e5%86%99" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>跨进程内存读写支持无痕模式。内核侧直接走目标进程页表遍历，不经 <code>ptrace</code>、不经 <code>/proc/pid/mem</code>、不设 <code>TracerPid</code>。</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：跨进程内存读写
+</span></span><span style="display:flex;"><span>function readMem(pid, addr, buf, len):
+</span></span><span style="display:flex;"><span>    mm = getTaskMm(pid)        // 拿目标进程 mm
+</span></span><span style="display:flex;"><span>    walkPageTable(mm, addr)    // 遍历页表取物理页
+</span></span><span style="display:flex;"><span>    copyPageToBuf(buf, ...)   // 读页内容
+</span></span><span style="display:flex;"><span>    mmput(mm)                  // 释放 mm 引用（必须配对！）
+</span></span><span style="display:flex;"><span>    return 0</span></span></code></pre></div></div>
+<p>这条路径也用于 Shadow Page 的跨进程读取：读事务在页表锁、mm 级同步和多 CPU 可见性协议保护下，临时将 PTE 指向 original PFN，完成 GUP 取页后恢复执行视图。TLB 刷新与保留策略由后端按目标内核、CPU 拓扑和访问时序实现。</p>
+
+<h3 class="relative group">VMA Dump
+    <div id="vma-dump" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#vma-dump" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>思路是让内核直接遍历目标进程的 VMA 链表，把结果写到调用方 buffer。整个过程不经 <code>/proc/maps</code>、不设 <code>TracerPid</code>、不创建文件。agent 用它构建 per-pid VMA 缓存，配合 ELF 符号表缓存做地址→符号的反查。</p>
+
+<h3 class="relative group">内核态 Trace (CPU 单步)
+    <div id="内核态-trace-cpu-单步" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%86%85%e6%a0%b8%e6%80%81-trace-cpu-%e5%8d%95%e6%ad%a5" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这是 Trace 的记录模式：在 debug 异常处理的 Software Step 分支中加入 trace 步进处理，对目标线程设置单步标志进入连续单步。每条用户态指令触发一次 SS 异常，handler 在异常上下文里采集 PC + 全量 GPR + SP + PSTATE + 时间戳，写入专用 trace ring buffer（覆盖最旧 + 丢弃计数），消费者分批取走。</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：CPU 单步 trace
+</span></span><span style="display:flex;"><span>function traceHandleStep(regs, session):
+</span></span><span style="display:flex;"><span>    if not inRange(regs.pc, session):
+</span></span><span style="display:flex;"><span>        return                  // 不在目标范围，跳过
+</span></span><span style="display:flex;"><span>    entry = { pc, x0..x30, sp, pstate, timestamp }
+</span></span><span style="display:flex;"><span>    ringWrite(session.ring, entry)
+</span></span><span style="display:flex;"><span>    if session.steps &gt;= session.maxSteps:
+</span></span><span style="display:flex;"><span>        traceStop(session)      // 达到上限，停止
+</span></span><span style="display:flex;"><span>    else:
+</span></span><span style="display:flex;"><span>        rearmSingleStep()      // 重新 arm 单步</span></span></code></pre></div></div>
+<p>关键约束：<code>MDSCR_EL1.SS</code> 是 per-CPU 寄存器，目标线程被调度到其他 CPU 时 SS 会丢失。trace 期间必须把目标线程钉在单个 CPU 上（<code>set_cpus_allowed_ptr</code>），trace 结束后恢复原亲和性。</p>
+<p>trace 的连续单步与框架其他单步消费者（HWBP 恢复单步、shadow BRK 单步、shadow read 单步、simulate backup 单步）共享同一个 <code>MDSCR.SS</code> 位。trace 在 SS 分发链中具有最高优先级，但不破坏其他机制的 one-shot 单步恢复。</p>
+
+<h3 class="relative group">符号解析
+    <div id="符号解析" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e7%ac%a6%e5%8f%b7%e8%a7%a3%e6%9e%90" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>Daemon 内置符号解析器，读 ELF <code>.dynsym</code> 解析符号地址。不走 <code>dl_iterate_phdr</code>——幽灵内存中的 SO 不在动态链接器维护的 <code>link_map</code> 中，常规枚举不会包含它；因此需要自行维护加载模块与符号表信息。</p>
+<p>符号解析用于两条路径：Hook 定位（按 SO 名 + 符号名找地址）和 Trace 符号化（批量解析 PC 对应的 <code>{soName, sym, offset}</code> 映射表，随 trace 帧推送到 PC）。</p>
+<p>VMA 缓存经内核无痕读取，ELF 符号表缓存从磁盘文件解析一次后复用（优先全量符号表），排序后二分查找。</p>
+
+<h3 class="relative group">反调试对抗
+    <div id="反调试对抗" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%8f%8d%e8%b0%83%e8%af%95%e5%af%b9%e6%8a%97" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>反作弊检测 HWBP 的手段已经非常成熟，主要通过 <code>ptrace</code> 和 <code>perf_event_open</code> 施展&quot;连环五步杀&quot;：读寄存器查空位、满载占坑测试、读写一致性校验、越界诱导陷阱（故意设 7 个断点看是否返回 <code>-ENOSPC</code>）、主动触发测试。</p>
+<p>应对思路是在内核层实现硬件调试寄存器的&quot;假账本&quot;：拦截 <code>ptrace</code> 对调试寄存器的读写请求，反作弊全程跟假账本交互，真实 CPU 物理寄存器不受干扰。假账本需要精确模拟内核行为——包括越界报错、读写一致性等，细节不到位反而暴露。</p>
+
+<h3 class="relative group">跨 Fork 子进程继承
+    <div id="跨-fork-子进程继承" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e8%b7%a8-fork-%e5%ad%90%e8%bf%9b%e7%a8%8b%e7%bb%a7%e6%89%bf" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>Zygote 注入的 Daemon、跳板和 Shadow Page 使用 VMA-less PTE。Fork 处理器将它们视为显式继承对象：在目标内核验证过的 fork 窗口内，为子进程恢复所需映射、运行状态和元数据。</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>kernel_clone
+</span></span><span style="display:flex;"><span>  └─ copy_process        ← 子进程 mm/页表已构造（VMA 复制完，但 VMA-less PTE 丢失）
+</span></span><span style="display:flex;"><span>     └─ wake_up_new_task(child)  ← KP hook 在此窗口安装子进程的 ghost PTE</span></span></code></pre></div></div>
+<p>四类对象的继承策略各不相同：</p>
+<ul>
+<li><strong>Ghost Mem</strong>：给子进程分配独立物理页 + 私有拷贝 + 逐页独立 PTE。必须私有——直接共享父进程物理页会导致子进程写 daemon 静态数据污染父进程。</li>
+<li><strong>Shadow Page</strong>：标记了 fork 传播的 hook 页克隆继承 shadow PTE；未标记的需暂停。</li>
+<li><strong>HWBP 规则</strong>：按子进程的线程生命周期注册断点，并为每个 TID 维护独立状态和返回地址栈。</li>
+<li><strong>Instrument / Hook 元数据</strong>：拷贝页内 hook/instrument 元数据（受 fork 传播标志门控）。</li>
+</ul>
+<p>线程 clone（共享 mm）不需要克隆——只有新进程才需要安装 ghost 内存。</p>
+
+<h3 class="relative group">DEX 动态加载
+    <div id="dex-动态加载" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#dex-%e5%8a%a8%e6%80%81%e5%8a%a0%e8%bd%bd" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>有时模块需要在目标进程注入自定义 Java 类——比如运行时生成的代理类或 Hook 回调类。设计上走内存 DEX 加载路线：dex 字节不落盘，直接在幽灵内存中包装为 ByteBuffer，反射构造 ClassLoader。</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：DEX 内存加载
+</span></span><span style="display:flex;"><span>function loadDex(dexBytes, size, useAppParent):
+</span></span><span style="display:flex;"><span>    ghostBuf = ghostMalloc(size, RW)     // 拷贝到独立幽灵内存
+</span></span><span style="display:flex;"><span>    byteBuffer = newDirectByteBuffer(ghostBuf, size)
+</span></span><span style="display:flex;"><span>    parent = useAppParent ? appClassLoader : null
+</span></span><span style="display:flex;"><span>    classLoader = new InMemoryDexClassLoader(byteBuffer, parent)
+</span></span><span style="display:flex;"><span>    return handle  // 后续 findClassFromDex / unloadDex</span></span></code></pre></div></div>
+<p>关键设计点：dex 字节先拷贝到独立的幽灵内存分配，使数据生命周期与用户 SO 的 ELF 映射解耦——直接包装指针会让 buffer 生命周期耦合 SO 映射，拷贝后 dex loader 自主管理，卸载时确定释放。</p>
+<p>parent ClassLoader 的选择影响可见范围：挂载 App ClassLoader 可经委托解析 App/framework 类；隔离加载则只有 bootstrap 类 + 自身 dex 类可见。这条路径完全在 daemon 侧实现，与 ART hook 引擎是否启用无关。</p>
+
+<h3 class="relative group">Binder / Linker 拦截器
+    <div id="binder--linker-拦截器" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#binder--linker-%e6%8b%a6%e6%88%aa%e5%99%a8" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>这两类拦截器都基于 Shadow Hook 实现，不引入 GOT trampoline。Binder 路径直接拦截 <code>transactNative</code> 的 native 入口；Linker 路径通过 Bionic 版本适配层解析可用 dlopen 入口。两者的映射可见性以常规 VMA 枚举为边界，页表及内核态观察路径纳入独立的安全评估。</p>
+<p><strong>Binder Transact 拦截</strong>：shadow hook <code>transactNative</code> 的 native 函数地址，在 transact 前后按 interface token 分发 before/after 回调。ART 适配层负责按版本定位 ArtMethod 与 native 入口，不将任何字段偏移视为稳定 ABI。读取 interface token 依赖 libbinder.so / libutils.so 的 native 函数，因此由一层 Parcel 工具桥接。</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：Binder 事务拦截
+</span></span><span style="display:flex;"><span>function fakeTransactNative(data, reply, flags):
+</span></span><span style="display:flex;"><span>    token = readInterfaceToken(data)    // 经 Parcel 工具读取
+</span></span><span style="display:flex;"><span>    dispatchBefore(token, data, reply)  // 按 token 匹配 before 回调
+</span></span><span style="display:flex;"><span>    result = origTransact(data, reply, flags)
+</span></span><span style="display:flex;"><span>    result = dispatchAfter(token, result, data, reply)  // 可覆盖返回值
+</span></span><span style="display:flex;"><span>    return result</span></span></code></pre></div></div>
+<p>Binder 拦截当前覆盖 client 侧。服务端采用 C++ 虚函数分派，扩展服务端覆盖时需要解析具体实现目标或设置独立拦截点。binder call log 作为可选开关，默认关闭，避免热路径开销。</p>
+<p><strong>Linker dlopen 拦截</strong>：shadow hook linker 的可用 dlopen 入口，在 SO 加载前后按 lib name 子串匹配分发回调。内部符号名和调用链由 Bionic 版本适配层维护，未命中入口时该能力保持关闭。</p>
+<p>两项能力均懒加载：首次调用才触发 init，per-process 独立，fork 后由映射继承处理器恢复。</p>
+
+<h3 class="relative group">SO 早期生命周期 &amp; JNI Trace
+    <div id="so-早期生命周期--jni-trace" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#so-%e6%97%a9%e6%9c%9f%e7%94%9f%e5%91%bd%e5%91%a8%e6%9c%9f--jni-trace" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>用户模块的 <code>ghostEntry</code> 在进程启动早期执行，目标 SO 则可能在后续才加载。SO 生命周期分为两段：ELF 的 <code>.init</code>/<code>.init_array</code> 由 linker 构造函数路径执行，<code>JNI_OnLoad</code> 由 ART 在 <code>dlopen</code> 返回后查找并调用。两段都位于 <code>System.loadLibrary</code> 的返回之前，框架为它们分别设置拦截点。</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>进程启动
+</span></span><span style="display:flex;"><span>  -&gt; daemon 加载用户 SO -&gt; ghostEntry(api)     ← simTraceStart 只能在这里或之后
+</span></span><span style="display:flex;"><span>  -&gt; App 代码执行
+</span></span><span style="display:flex;"><span>    -&gt; System.loadLibrary(&#34;libfoo.so&#34;)
+</span></span><span style="display:flex;"><span>      -&gt; dlopen -&gt; link -&gt; relocate
+</span></span><span style="display:flex;"><span>      -&gt; call_constructors                       ← .init / .init_array 在此执行
+</span></span><span style="display:flex;"><span>      -&gt; dlopen 返回
+</span></span><span style="display:flex;"><span>      -&gt; ART 查找并调用 JNI_OnLoad
+</span></span><span style="display:flex;"><span>    -&gt; App 后续调用 libfoo.so 的函数             ← simTraceStart 在这里才能 findSymbol</span></span></code></pre></div></div>
+<p>Linker 构造函数路径和 ART 的 <code>JNI_OnLoad</code> 路径各自建立拦截点。linker/ART 内部符号及调用链由版本特征识别；幽灵内存中的 SO 不在 <code>dl_iterate_phdr</code> 的常规枚举范围内，符号解析器据此维护独立的模块记录，并在需要时回退到完整 ELF 符号表。</p>
+<p>JNI 动态注册的 trace 同理：JNIEnv 函数表中的 native 方法注册入口按固定偏移就能取到，无需解析 ART 内部符号，在注册时拦截匹配的方法即可 trace 其函数指针。</p>
+
+<h3 class="relative group">花指令对抗
+    <div id="花指令对抗" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e8%8a%b1%e6%8c%87%e4%bb%a4%e5%af%b9%e6%8a%97" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>目标 SO 使用花指令混淆控制流：在真实指令间插入 junk bytes，通过 <code>br x_reg</code>（间接分支寄存器）跳转到 SO 内部的真实代码地址。静态反汇编器看到 <code>br</code> 时无法解析目标地址，从 junk bytes 起点反汇编会产生错误指令序列。</p>
+<p>GTrace 采用动态仿真执行的方案，天然跟随 <code>br</code> 跳转——trace 日志中的指令序列已经是去花后的真实执行路径。trace 日志通过标注内部分支目标和 PC 间断区间，使自动化分析工具可直接提取去花后的真实执行路径，无需从 PC 非连续推断。</p>
+
+<h3 class="relative group">多 Trace 并发
+    <div id="多-trace-并发" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%a4%9a-trace-%e5%b9%b6%e5%8f%91" aria-label="Anchor">#</a>
+    </span>
+    
+</h3>
+<p>同一 SO 中不同函数的 trace 场景：先 <code>traceStart(funcA)</code> 再 <code>traceStart(funcB)</code>，之后 A 和 B 可能在不同时刻被调用。如果 per-trace 配置（writer、traceMode、memReadMode 等）存在全局变量中，第二次调用会覆盖前者的配置，导致 trace 数据写错文件。</p>
+<p>解法是将 code handler 的 per-trace 配置从全局变量重构为 per-handle 上下文，通过仿真引擎的 userData 传递给所有 hook 回调，实现多 handle 独立运行。由于仿真执行是同步阻塞的，两个 trace 不可能真正并发，但 shadow hook 是异步触发的——per-handle 化后各自独立，互不干扰。</p>
+
+<h2 class="relative group">踩坑杂谈
+    <div id="踩坑杂谈" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e8%b8%a9%e5%9d%91%e6%9d%82%e8%b0%88" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>这部分聊几个让人头疼的细节，给各位大佬省点时间。</p>
+<p><strong>多页 <code>vmap</code> 的页数组构造</strong></p>
+<p>多页幽灵内存使用 <code>alloc_pages</code> + <code>vmap</code> 时，页数组必须包含每一页对应的 <code>struct page</code>。<code>vmap</code> 按数组逐页建立内核虚拟映射；连续页分配需要正确展开每个 page 并逐页校验 PFN。一次 ELF 加载出现的 PFN 重复和 <code>missing DT_GNU_HASH</code>，最终定位为页数组/PFN 展开环节错误。当前实现使用 <code>vmalloc</code> 简化多页分配，并继续以 <code>vmalloc_to_pfn</code> 逐页校验映射结果。</p>
+<p><strong>跳板池化后的 cache 维护范围</strong></p>
+<p>早期每条跳板独占一整页 ghost 映射，浪费 87.5%~94% 物理页。改成每页 256B 切 16 槽的跳板池后，跳板 VA 不再页对齐。原有&quot;整页 DC CIVAC + IC IVAU&quot;如果以槽基为起点会越界刷到相邻映射。解法是所有 cache flush 范围改为按页对齐（刷整张池页，over-flush 相邻槽，注册非高频路径可接受）。</p>
+<p><strong>异常上下文中的锁</strong></p>
+<p>Hook 回调运行在异常上下文中，不能用 <code>spin_lock_irqsave</code>——它会操作 DAIF 寄存器，破坏 KP 跳板状态。必须用自定义的 LDAXR/STXR 原子锁来保护共享数据。</p>
+<p><strong><code>mm_users</code> 引用泄漏</strong></p>
+<p>临时持有目标进程 <code>mm</code>（通过 <code>get_task_mm</code> 或等价内核符号）的代码，所有返回路径都必须 <code>mmput</code>。泄漏一个 <code>mm_users</code> 引用会阻止进程进入 <code>exit_mmap</code>，导致 ghost 映射无法清理，Android framework 在 SIGKILL 后仍认为旧 ProcessRecord 未死亡，后续启动被拒绝或卡 splash。这个排查起来非常非常非常非常非常非常非常痛苦&hellip;</p>
+<p><strong>Fork 克隆必须私有拷贝</strong></p>
+<p>子进程 fork 时，ghost 映射使用独立的 <code>vmalloc</code> + <code>memcpy</code> + 逐页 PTE，避免 daemon 静态数据跨进程共享。资源生命周期同时覆盖 fork、退出和 execve 的旧 mm 回收路径，并按目标 Android/Linux 内核调用链注册清理处理。</p>
+
+<h2 class="relative group">与传统方案的对比
+    <div id="与传统方案的对比" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e4%b8%8e%e4%bc%a0%e7%bb%9f%e6%96%b9%e6%a1%88%e7%9a%84%e5%af%b9%e6%af%94" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>下表比较三类方案的实现路径与工程约束。可见性、完整性和并发性均由具体观察路径、目标内核及运行时版本共同决定。</p>
+<table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>传统 Inline Hook</th>
+          <th>纯 HWBP</th>
+          <th>GhostHook 架构</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>代码页处理</td>
+          <td>原始 <code>.text</code> 直接改写</td>
+          <td>保留原始代码页</td>
+          <td>original 页保留，shadow 页承载替换内容</td>
+      </tr>
+      <tr>
+          <td>完整性视图</td>
+          <td>读取和执行均为改写结果</td>
+          <td>读取和执行均为原始结果</td>
+          <td>读取视图为 original，执行视图为 shadow</td>
+      </tr>
+      <tr>
+          <td>Hook 数量</td>
+          <td>通常不受硬件槽位限制</td>
+          <td>由可用断点槽位决定</td>
+          <td>由页与元数据管理能力决定</td>
+      </tr>
+      <tr>
+          <td>映射元数据</td>
+          <td>跳板映射可见</td>
+          <td>通常无额外映射</td>
+          <td>常规 VMA 枚举不包含 ghost 映射</td>
+      </tr>
+      <tr>
+          <td>并发模型</td>
+          <td>修改窗口同步</td>
+          <td>TID 状态隔离</td>
+          <td>mm 级 PTE、TLB/cache 与异常状态协调</td>
+      </tr>
+      <tr>
+          <td>工程门槛</td>
+          <td>低</td>
+          <td>中</td>
+          <td>高（内核 + ARM64 指令集功底）</td>
+      </tr>
+      <tr>
+          <td>调试寄存器</td>
+          <td>不依赖</td>
+          <td>受调试设施与检测面影响</td>
+          <td>按目标内核维护调试寄存器状态</td>
+      </tr>
+      <tr>
+          <td>ART Hook 入口</td>
+          <td>改 <code>entry_point</code> 指针</td>
+          <td>可用性取决于实现</td>
+          <td>Shadow Data Page 提供受控的入口视图</td>
+      </tr>
+      <tr>
+          <td>Trace 能力</td>
+          <td>无</td>
+          <td>有限的断点事件</td>
+          <td>CPU 单步 + 仿真双模式</td>
+      </tr>
+      <tr>
+          <td>跨进程读写</td>
+          <td>常见实现使用 ptrace</td>
+          <td>无</td>
+          <td>内核页表遍历，不经 ptrace</td>
+      </tr>
+      <tr>
+          <td>DEX 动态加载</td>
+          <td>取决于实现</td>
+          <td>取决于实现</td>
+          <td>内存字节加载 DEX，不落盘</td>
+      </tr>
+      <tr>
+          <td>Binder 拦截</td>
+          <td>常见实现使用 GOT hook</td>
+          <td>不适用</td>
+          <td>Shadow Hook <code>transactNative</code>，版本适配</td>
+      </tr>
+      <tr>
+          <td>Linker 拦截</td>
+          <td>常见实现使用 PLT hook</td>
+          <td>不适用</td>
+          <td>Shadow Hook dlopen 入口，版本适配</td>
+      </tr>
+      <tr>
+          <td>SO 早期 Trace</td>
+          <td>取决于注入时机</td>
+          <td>不适用</td>
+          <td>分别覆盖构造函数与 <code>JNI_OnLoad</code> 路径</td>
+      </tr>
+      <tr>
+          <td>花指令对抗</td>
+          <td>不支持</td>
+          <td>不支持</td>
+          <td>仿真跟随 <code>br</code> 跳转 + junk bytes 标注</td>
+      </tr>
+      <tr>
+          <td>Fork 继承</td>
+          <td>手动处理</td>
+          <td>不自动继承规则状态</td>
+          <td>fork 路径恢复映射和状态</td>
+      </tr>
+      <tr>
+          <td>Daemon 热重载</td>
+          <td>需重启</td>
+          <td>需重启</td>
+          <td>清 hook → 卸载 → 重新注入，不重启 Zygote</td>
+      </tr>
+      <tr>
+          <td>性能</td>
+          <td>极快</td>
+          <td>快</td>
+          <td>异常与同步路径有额外开销，后续取决于实现</td>
+      </tr>
+  </tbody>
+</table>
+
+<h2 class="relative group">模块开发体验
+    <div id="模块开发体验" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e6%a8%a1%e5%9d%97%e5%bc%80%e5%8f%91%e4%bd%93%e9%aa%8c" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>对于写 Hook 模块的人来说，设计目标只有一个：极简。模块开发者只需 include 一个纯声明头文件，不链接任何 SDK 库，拿到一个函数指针表就能用全部能力。</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#75715e">// 概念：用户模块入口
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;ghosthook_sdk.h&#34;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">ghostEntry</span>(<span style="color:#66d9ef">const</span> GhostApi <span style="color:#f92672">*</span>api) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Shadow Hook
+</span></span></span><span style="display:flex;"><span>    api<span style="color:#f92672">-&gt;</span>shadowHook(<span style="color:#e6db74">&#34;libc.so&#34;</span>, <span style="color:#e6db74">&#34;open&#34;</span>, myOpen, <span style="color:#f92672">&amp;</span>origOpen);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ART Hook / DEX 加载 / Binder 拦截 / trace ...
+</span></span></span><span style="display:flex;"><span>    <span style="color:#75715e">// —— 全部通过同一个 api 指针表调用
+</span></span></span><span style="display:flex;"><span>}</span></span></code></pre></div></div>
+<p>所有 DBI/跳板/内存隐藏等底层细节全部由 Daemon + KPM 透明处理。模块编译为独立 <code>.ghm</code> 文件，由 Manager App 管理和分发。</p>
+
+<h2 class="relative group">写在最后
+    <div id="写在最后" class="anchor"></div>
+    
+    <span
+        class="absolute top-0 w-6 transition-opacity opacity-0 -start-6 not-prose group-hover:opacity-100 select-none">
+        <a class="text-primary-300 dark:text-neutral-700 !no-underline" href="#%e5%86%99%e5%9c%a8%e6%9c%80%e5%90%8e" aria-label="Anchor">#</a>
+    </span>
+    
+</h2>
+<p>这个项目从设计到实现断断续续搞了挺久，踩的坑远比上面写的多。</p>
+<p>内核态开发最大的痛苦不是逻辑复杂，而是调试成本——一个 PTE 属性位拼错了，手机直接黑屏重启，有时候 dmesg 提供的崩溃日志甚至无法定位</p>
+<p>这套架构的价值在于把原始页、shadow 页和访问路径分层管理。传统 Inline Hook 直接改写目标代码；Shadow Page 则以双页视图承载执行和读取。围绕页表同步、运行时版本适配与资源生命周期建立完整约束后，这种分层能够为 Hook、插桩和 Trace 提供统一的内核侧基础设施。</p>
+<p>项目还在持续迭代，后面有机会再聊聊更多细节。文中如果有描述不准确的地方，欢迎交流指正。</p>
+<p>最后配几张图, 祝各位大佬实现顺利 !!!</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="GhostHook Manager App"
+    src="/ghost-hook-design/ghost-hook-manager-app.png"
+    ></figure>
+</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="模块示例代码 Binder / RegisterNative / Linker / Trace"
+    src="/ghost-hook-design/ghost-hook-module-demo.png"
+    ></figure>
+</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="模块加载与 ART Hook 注册日志"
+    src="/ghost-hook-design/ghost-hook-module-init.png"
+    ></figure>
+</p>
+<p><figure><img
+    class="my-0 rounded-md"
+    loading="lazy"
+    decoding="async"
+    fetchpriority="low"
+    alt="Ghost Trace 指令流跟踪日志"
+    src="/ghost-hook-design/ghost-hook-trace-log.png"
+    ></figure>
+</p>
+
+          
+          
+          
+        </div>
+        
+        
+
+        
+
+        
+
+      </div>
+    </section>
+
+    
+    <footer class="pt-8 max-w-prose print:hidden">
+      
+  
+    
+    
+    
+    <div class="pt-8">
+      <hr class="border-dotted border-neutral-300 dark:border-neutral-600">
+      <div class="flex justify-between pt-3">
+        <span class="flex flex-col">
+          
+            <a
+              class="flex text-neutral-700 hover:text-primary-600 dark:text-neutral dark:hover:text-primary-400"
+              href="/posts/dpt-byte-vmp-dex-protect/">
+              <span class="leading-6">
+                <span class="inline-block rtl:rotate-180">&larr;</span>&ensp;DPT+ByteVM 加固逆向分析
+              </span>
+            </a>
+            
+              <span class="ms-6 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <time datetime="2026-07-03T00:00:00&#43;00:00">July 3, 2026</time>
+              </span>
+            
+          
+        </span>
+        <span class="flex flex-col items-end">
+          
+        </span>
+      </div>
+    </div>
+  
+
+
+      
+    </footer>
+  </article>
+
+        
+
+
+  
+
+
+
+
+
+
+<div
+  id="scroll-to-top"
+  class="fixed bottom-6 end-6 z-50 transform translate-y-4 opacity-0 duration-200">
+  <a
+    href="#the-top"
+    class="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral/50 text-xl text-neutral-700 hover:text-primary-600 dark:bg-neutral-800/50 dark:text-neutral dark:hover:text-primary-400"
+    aria-label="Scroll to top"
+    title="Scroll to top">
+    &uarr;
+  </a>
+</div>
+
+      </main><footer id="site-footer" class="py-10 print:hidden">
+  
+  
+    
+  
+  <div class="flex items-center justify-between">
+    
+    
+      <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          &copy;
+          2026
+          
+      </p>
+    
+
+    
+    
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">
+        
+        
+        Powered by <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://gohugo.io/" target="_blank" rel="noopener noreferrer">Hugo</a> &amp; <a class="hover:underline hover:decoration-primary-400 hover:text-primary-500"
+          href="https://blowfish.page/" target="_blank" rel="noopener noreferrer">Blowfish</a>
+      </p>
+    
+  </div>
+  
+    <script>
+      mediumZoom(document.querySelectorAll("img:not(.nozoom)"), {
+        margin: 24,
+        background: "rgba(0,0,0,0.5)",
+        scrollOffset: 0,
+      });
+    </script>
+  
+  
+  
+</footer>
+
+    </div>
+  </body>
+  
+</html>

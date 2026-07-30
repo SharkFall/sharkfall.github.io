@@ -1,32 +1,25 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
   <url>
-    <loc>https://example.org/tags/arm64-mac-compile-kernel/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/posts/pixel-6-kernel-diy/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/categories/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/kernel/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/categories/kernel-diy/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/pixel-6/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
+    <loc>https://example.org/posts/ghost-hook-design/</loc>
+    <lastmod>2026-07-12T00:00:00+00:00</lastmod>
+  </url>
+  <url>
     <loc>https://example.org/posts/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
+    <lastmod>2026-07-12T00:00:00+00:00</lastmod>
+  </url>
+  <url>
     <loc>https://example.org/</loc>
-    <lastmod>2026-05-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/</loc>
+    <lastmod>2026-07-12T00:00:00+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://example.org/posts/dpt-byte-vmp-dex-protect/</loc>
+    <lastmod>2026-07-03T00:00:00+00:00</lastmod>
+  </url>
+  <url>
+    <loc>https://example.org/posts/pixel-6-kernel-diy/</loc>
     <lastmod>2026-05-24T00:00:00+00:00</lastmod>
   </url>
 </urlset>
