@@ -36,7 +36,7 @@
   
   
   
-  <link rel="canonical" href="https://example.org/posts/ghost-hook-design/">
+  <link rel="canonical" href="https://sharkfall.github.io/posts/ghost-hook-design/">
   
   
 
@@ -45,7 +45,7 @@
   
 
   
-  <meta property="og:url" content="https://example.org/posts/ghost-hook-design/">
+  <meta property="og:url" content="https://sharkfall.github.io/posts/ghost-hook-design/">
   <meta property="og:site_name" content="SharkFall&#39;s Blog">
   <meta property="og:title" content="Android 内核无痕 Hook 框架设计思路">
   <meta property="og:description" content="写在前面 # 拜读完珍惜佬写的 Android内核无痕Hook理解和感悟 文章以后, 受益匪浅 !!!
@@ -241,7 +241,7 @@
     "headline": "Android 内核无痕 Hook 框架设计思路",
     
     "inLanguage": "en-us",
-    "url" : "https://example.org/posts/ghost-hook-design/",
+    "url" : "https://sharkfall.github.io/posts/ghost-hook-design/",
     "author" : {
       "@type": "Person",
       "name": ""
@@ -254,8 +254,8 @@
     
     "keywords": ["Android","APatch Module","ARM64 Inline Hook","无痕 Hook","Art Hook"],
     
-    "mainEntityOfPage": "https://example.org/posts/ghost-hook-design/",
-    "wordCount": "2055"
+    "mainEntityOfPage": "https://sharkfall.github.io/posts/ghost-hook-design/",
+    "wordCount": "2063"
   }]
   </script>
 
@@ -470,7 +470,7 @@
   <div class="flex flex-row flex-wrap items-center">
     
     
-      <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>2055 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">10 mins</span>
+      <time datetime="2026-07-12T00:00:00&#43;00:00">July 12, 2026</time><span class="px-2 text-primary-500">&middot;</span><span>2063 words</span><span class="px-2 text-primary-500">&middot;</span><span title="Reading time">10 mins</span>
     
 
     
@@ -694,6 +694,7 @@
 <li>Daemon 热重载 (不重启 Zygote 热替换 Daemon)</li>
 <li>跨 Fork 子进程继承 (VMA-less PTE 不被 fork 复制, 需手动克隆)</li>
 <li>模块版本兼容 (编译期声明 API 版本约束)</li>
+<li>Dex Dump (感谢 FART 的脱壳思路)</li>
 <li>and more &hellip;</li>
 </ul>
 
@@ -725,9 +726,9 @@
 </span></span><span style="display:flex;"><span>│  │(页表遍历) │(VMA链表) │  (MDSCR.SS+ring)  │    │
 </span></span><span style="display:flex;"><span>│  └──────────┴──────────┴───────────────────┘    │
 </span></span><span style="display:flex;"><span>└──────────────────────┬──────────────────────────┘
-</span></span><span style="display:flex;"><span>                       │ syscall (SDK 命令, daemon 代理)
+</span></span><span style="display:flex;"><span>                       ▲ syscall（SDK 命令）
 </span></span><span style="display:flex;"><span>═══════════════════════╪═══════════════════════════ EL0/EL1
-</span></span><span style="display:flex;"><span>                       ▼
+</span></span><span style="display:flex;"><span>                       ▼ 返回值 / 事件（daemon 代理）
 </span></span><span style="display:flex;"><span>┌─────────────────────────────────────────────────┐
 </span></span><span style="display:flex;"><span>│              目标进程 (EL0)                       │
 </span></span><span style="display:flex;"><span>│                                                   │
@@ -746,7 +747,7 @@
 </span></span><span style="display:flex;"><span>└─────────────────────────────────────────────────┘</span></span></code></pre></div></div>
 <p>几个关键设计决策:</p>
 <p><strong>Daemon 代理模式</strong>：KPM 先往 Zygote 注入一个 Daemon SO，由它实现所有 SDK 逻辑并通过 syscall 与内核通信。用户模块只需要 include 一个纯声明头文件，通过 Daemon 传入的函数指针表调用能力。这样用户模块极轻量，多模块零代码重复，符号解析和 Hook 句柄管理都集中在 Daemon 一处。</p>
-<p><strong>Zygote 注入</strong>：Daemon SO 只注入到 Zygote 进程常驻，子进程 fork 后按包名按需加载用户模块。好处是不用对每个目标 App 独立注入，Zygote fork 出来的所有进程天然继承。</p>
+<p><strong>Zygote 注入</strong>：Daemon SO 先注入到 Zygote 常驻，子进程 fork 后再按包名按需加载用户模块。常规 Zygote 状态随 fork 延续；VMA-less 映射及其运行状态由 fork 路径显式恢复，确保子进程得到独立、完整的运行环境。</p>
 <p><strong>鉴权</strong>：KPM 启动时生成 32 字节随机 session key，所有命令必须携带。Manager 端通过签名锚定自动获取 key——KPM 编译期内置 Manager 签名证书摘要，鉴权请求到达时在内核态校验调用者 APK 签名是否匹配，命中则缓存 uid 走 fast-path，整个过程无需提权。非 Manager 链路（agent / PC 调试）走人工配对码 fallback：一次性短码，限时消费，防止被测信道检测</p>
 
 <h2 class="relative group">核心技术方向
@@ -783,15 +784,17 @@
     </span>
     
 </h3>
-<p>这里要感谢 WX 大佬提出的 <a href="https://bbs.kanxue.com/thread-290304.htm"  target="_blank" rel="noreferrer">Shadow Page 方案</a>, 下面 Art Hook 的隐藏就是根据这个延伸出的 Shaodw Data Page 方案</p>
-<p>这是框架 <strong>Inline Hook</strong> 和 <strong>指令插桩</strong> 的核心方案。思路是&quot;同一 VA 在执行和读取之间切换不同物理页&quot;：</p>
+<p>这里要感谢 WX 大佬提出的 <a href="https://bbs.kanxue.com/thread-290304.htm"  target="_blank" rel="noreferrer">Shadow Page 方案</a>。下面 Art Hook 使用的 Shadow Data Page 也是由这一思路延伸而来。</p>
+<p>这是框架 <strong>Inline Hook</strong> 和 <strong>指令插桩</strong> 的核心方案。它为同一 VA 维护两份内容视图：original PFN 保存原始字节，shadow PFN 保存 hook 或插桩后的指令。执行与读取通过页权限和异常路由选择各自的视图：</p>
 <ul>
-<li>执行态映射到 shadow PFN，权限 <code>--x</code>（执行不可读），hook 字节写在 shadow 页</li>
-<li>数据读取触发 DABT，PTE 切到 original PFN，权限 <code>r--</code>，读到干净原始字节</li>
-<li>读完成后下次执行触发 IABT，PTE 切回 shadow PFN</li>
+<li>执行态映射到 shadow PFN，权限为 <code>--x</code>（执行不可读）</li>
+<li>普通数据读取触发 DABT 后，PTE 临时指向 original PFN，权限为 <code>r--</code></li>
+<li>读取完成后的下一次执行触发 IABT，PTE 恢复指向 shadow PFN</li>
 </ul>
-<p>关键前提是设备支持 FEAT_EPAN（PAN3），它允许 EL0 使用 execute-only 映射（执行不可读的 PTE 权限组合）。</p>
-<p>没有 EPAN 的设备走单页 <code>---</code> 仿真降级路径——原页完全阻断，KPM 在 fault handler 里软件仿真执行指令。仿真器按层级覆盖：PC-relative 指令必须仿真（用原始 PC 计算），普通 ALU 和访存指令软件仿真，SIMD/FP 等罕见指令走 backup 页单步兜底。</p>
+<p>这种双视图设计将原始代码内容、实际执行内容和读取结果分开管理。常规代码读取路径基于 original PFN 计算校验值，执行路径则进入 shadow PFN；完整性观察的结果由观察路径及其可见范围共同决定。</p>
+<p>页表切换以 <code>mm_struct</code> 为作用域。Shadow Page 管理器为同一地址空间内的线程和 CPU 统一维护 PTE 状态、TLB/cache 同步及异常上下文，使执行视图和读取视图在并发访问下保持一致。</p>
+<p>关键前提是目标运行内核已启用并支持 FEAT_EPAN（PAN3），从而允许 EL0 使用 execute-only 映射（执行不可读的 PTE 权限组合）。设备能力由 KPM 在内核侧统一探测；用户态 feature ID 寄存器的可见字段随内核 ABI、版本和配置变化。</p>
+<p>没有 EPAN 的设备使用单页 <code>---</code> 仿真路径：原页完全阻断，KPM 在 fault handler 中软件仿真执行指令。仿真器按层级覆盖：PC-relative 指令使用原始 PC 计算，普通 ALU 和访存指令由软件执行，SIMD/FP 等低频指令通过 backup 页单步兜底。</p>
 <div class="admonition relative overflow-hidden rounded-lg border-l-4 my-3 px-4 py-3 shadow-sm" data-type="warning">
       <div class="flex items-center gap-2 font-semibold text-inherit">
         <div class="flex shrink-0 h-5 w-5 items-center justify-center text-lg"><span class="relative block icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M506.3 417l-213.3-364c-16.33-28-57.54-28-73.98 0l-213.2 364C-10.59 444.9 9.849 480 42.74 480h426.6C502.1 480 522.6 445 506.3 417zM232 168c0-13.25 10.75-24 24-24S280 154.8 280 168v128c0 13.25-10.75 24-23.1 24S232 309.3 232 296V168zM256 416c-17.36 0-31.44-14.08-31.44-31.44c0-17.36 14.07-31.44 31.44-31.44s31.44 14.08 31.44 31.44C287.4 401.9 273.4 416 256 416z"/></svg>
@@ -800,12 +803,12 @@
           Warning
         </div>
       </div><div class="admonition-content mt-3 text-base leading-relaxed text-inherit"><ul>
-<li>如果设备不支持 EPAN 会很坑, 在 KPM 中做指令模拟确实能跑, 但是太复杂, 建议使用支持 FEAT_EPAN 特性的设备(Pixel 8/9), 实现起来很简单</li>
-<li>EPAN 状态不能在 EL0 直接查询。Linux 对 EL0 读 feature ID 寄存器做了陷入+消毒，<code>ID_AA64MMFR1_EL1.PAN</code> 在 EL0 读出来永远是 0。必须委托 KPM 在 EL1 读取并回报。</li>
+<li>EPAN 设备可使用执行/读取双视图；非 EPAN 设备需要评估内核侧指令仿真的覆盖范围和性能成本。</li>
+<li>能力探测、PTE 属性组合及异常处理路径均以目标内核的实际实现为准。</li>
 </ul></div></div><p>除了 Inline REPLACE，Shadow Page 还支持三种指令插桩模式：</p>
 <ul>
 <li><strong>LISTEN</strong>：命中时发 PRE 事件（寄存器快照），单步原指令，SS 后发 POST 事件。纯监听，不阻断用户回调</li>
-<li><strong>INTERCEPT</strong>：原指令执行后进入用户态 callback，回调可通过栈上的寄存器上下文改寄存器和续算 PC。上下文存在调用线程的栈帧上，天然线程安全</li>
+<li><strong>INTERCEPT</strong>：原指令执行后进入用户态 callback，回调通过调用线程栈帧中的寄存器上下文修改寄存器和续算 PC；回调上下文按线程保存，页表视图仍由 mm 级 Shadow Page 管理器协调</li>
 <li><strong>BEFORE_AFTER</strong>：before callback 在原指令前执行，after callback 在原指令后执行，中间靠特定的内核通知机制协调原指令单步</li>
 </ul>
 <p>插桩命中靠特定的未定义指令编码触发异常，handler 内根据 PC 偏移查表判断归属，不需要读取目标 VA 字节。</p>
@@ -820,7 +823,7 @@
     
 </h3>
 <p>这是整个框架隐身能力的根基。</p>
-<p>常规 <code>mmap</code> 会在进程的 <code>mm_struct</code> 链表里注册 VMA，VMA 必然暴露在 <code>/proc/self/maps</code>。即使你 hook <code>show_map_vma</code> 把它过滤掉，<code>mincore</code> 等盲探手段还是能发现。</p>
+<p>常规 <code>mmap</code> 会在进程地址空间中创建 VMA 元数据，<code>/proc/self/maps</code> 按这些元数据枚举映射。仅过滤 <code>show_map_vma</code> 仍会留下可由 <code>mincore</code> 等路径观察到的映射行为。</p>
 <p>幽灵内存的思路是绕过操作系统管理层，直接操作底层页表:</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>function allocGhostMemory(pid, size):
 </span></span><span style="display:flex;"><span>    kernelPage = kernelVmalloc(size)          // 内核态分配物理页
@@ -830,8 +833,8 @@
 </span></span><span style="display:flex;"><span>    injectPte(pid-&gt;mm, userVA, kernelPage.pfn)
 </span></span><span style="display:flex;"><span>    flushTLB()                                 // 强制 CPU 认下这张&#34;伪造地契&#34;
 </span></span><span style="display:flex;"><span>    return userVA  // CPU 硬件认可，但 OS 管理层查无此 VMA</span></span></code></pre></div></div>
-<p>利用&quot;硬件页表 (PTE) 与操作系统管理层 (VMA) 之间的信息差&quot;制造的内存——CPU 的 MMU 查页表发现合法，用户态可以正常访问；但操作系统遍历 VMA 链表查不到这条记录。<code>maps</code> 扫描、<code>mincore</code> 探测全部失效，从源头上逃逸了 Linux 内存管理。</p>
-<p>此外还有一个 <code>mmap_region</code> 守卫：ghost 映射是 VMA-less PTE，内核 <code>get_unmapped_area</code>/<code>mmap_region</code> 选址只看 VMA 不看 PTE，目标进程后续普通 mmap 可能落在 ghost PTE 占用的 VA 上导致静默覆盖。pre-hook 检测重叠，命中则返回 <code>-ENOMEM</code>（fail-closed）</p>
+<p>Ghost Mem 将映射信息分为硬件页表和 VMA 元数据两层：CPU 的 MMU 依据 PTE 完成访问，常规 VMA 链表枚举则不会返回这段地址。它的设计目标是收敛常规 VMA 枚举面；页表检查、映射一致性检查和内核态观察属于另一条可见性边界，需要在威胁模型中单独评估。</p>
+<p>VMA-less PTE 还需要地址空间保护。<code>get_unmapped_area</code>/<code>mmap_region</code> 的选址依据 VMA，后续普通 mmap 可能选中已由 ghost PTE 占用的 VA。框架在 <code>mmap_region</code> 路径检查重叠，命中时返回 <code>-ENOMEM</code>（fail-closed）；其余会改变地址空间布局的路径也纳入目标内核的兼容性清单。</p>
 
 <h3 class="relative group">HWBP 硬件断点
     <div id="hwbp-硬件断点" class="anchor"></div>
@@ -845,18 +848,21 @@
 <p>ARM64 CPU 内置了调试寄存器，你把目标地址写进去，CPU 每次执行时硬件比较器自动比对，命中就触发异常。整个过程不改一个字节的内存。</p>
 <p>GhostHook 的 HWBP <strong>不经过 perf_event 子系统</strong>，而是在内核态直接操作 ARM64 调试寄存器并接管 debug 异常处理路径。这样做的好处是绕过了 perf_event 路径的检测面</p>
 <p><strong>HWBP注册</strong>。Linux 内核里进程和线程都是 <code>task_struct</code>，HWBP 绑定的是 TID 而非 TGID。只给主线程下断点，子线程走到目标地址根本不会报警。</p>
-<p><strong>数量限制是个硬伤</strong>：ARM64 最多 6 个执行断点。想 Hook 更多函数就得换 Shadow Page 方案。但 HWBP 可以做状态机跳跃，单断点同时抓入参和返回值:</p>
-<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：单断点状态机
+<p><strong>数量限制是个硬约束</strong>：HWBP Manager 在初始化阶段读取目标 CPU 的调试能力，并结合内核已占用的槽位计算可分配断点数。执行断点数量随设备和运行环境变化，适合承载数量有限、需要低侵入监听的热点规则；大规模 Hook 由 Shadow Page 等页级机制承担。单条 HWBP 规则可用于追踪入参与返回值：</p>
+<div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：按 TID 维护的断点状态
 </span></span><span style="display:flex;"><span>function hwbpHandler(regs):
-</span></span><span style="display:flex;"><span>    if state == ENTRY:
-</span></span><span style="display:flex;"><span>        captureArgs(regs)            // 抓入参
-</span></span><span style="display:flex;"><span>        moveBreakpoint(returnAddr)   // 断点跳到返回地址
-</span></span><span style="display:flex;"><span>        state = RETURN
-</span></span><span style="display:flex;"><span>    elif state == RETURN:
-</span></span><span style="display:flex;"><span>        captureReturnValue(regs)     // 抓返回值
-</span></span><span style="display:flex;"><span>        moveBreakpoint(origAddr)     // 断点跳回入口
-</span></span><span style="display:flex;"><span>        state = ENTRY</span></span></code></pre></div></div>
-<p>全程零额外内存、零执行流干预。CPU 在函数体内全速原生执行，只在&quot;进&quot;和&quot;出&quot;两个瞬间闪现一次。</p>
+</span></span><span style="display:flex;"><span>    state = stateFor(currentTid)
+</span></span><span style="display:flex;"><span>    if state.mode == ENTRY:
+</span></span><span style="display:flex;"><span>        captureArgs(regs)                 // 抓入参
+</span></span><span style="display:flex;"><span>        state.returnStack.push(returnAddr)
+</span></span><span style="display:flex;"><span>        moveBreakpoint(state.returnStack.top())
+</span></span><span style="display:flex;"><span>        state.mode = RETURN
+</span></span><span style="display:flex;"><span>    elif state.mode == RETURN:
+</span></span><span style="display:flex;"><span>        captureReturnValue(regs)          // 抓返回值
+</span></span><span style="display:flex;"><span>        state.returnStack.pop()
+</span></span><span style="display:flex;"><span>        moveBreakpoint(origAddr)
+</span></span><span style="display:flex;"><span>        state.mode = ENTRY</span></span></code></pre></div></div>
+<p>HWBP 状态和返回地址栈按 TID 隔离。递归与重入场景通过可用断点槽位或辅助机制维护嵌套层次；函数体中的普通指令保持原生执行，入口、返回及状态转换点由异常处理接管。</p>
 <p>如果需要替换执行流（不只是监听），就得引入用户态跳板。跳板里有一个&quot;关闸→调原函数→开闸&quot;的流程，避免调原函数时重复触发断点死循环。LR 寄存器的保护是个极易踩坑的点——<code>BLR</code> 指令会覆盖 X30，得找个 callee-saved 寄存器（比如 X20）当&quot;安全屋&quot;暂存原始 LR。</p>
 
 <h3 class="relative group">指令重定位 (DBI)
@@ -922,9 +928,9 @@
     
 </h3>
 <p>ART 虚拟机里每个 Java 方法对应一个 <code>ArtMethod</code> 结构体，其中 <code>entry_point</code> 指针指向编译后的机器码入口。传统 LSPlant 方案是替换这个指针指向自定义跳板，但反作弊会扫描所有 <code>ArtMethod</code> 的 <code>entry_point</code>，检查指针是否指向合法的 <code>boot.art</code> 或 OAT 文件区域。</p>
-<p>GhostHook 同样会修改 <code>entry_point</code> 指针，但关键区别在于：修改后的字段驻留在 ArtMethod 堆线性区上，任何持有指针的代码都能读到篡改值。框架通过 <strong>Shadow Data Page</strong> 方案隐藏这次篡改：将目标数据页权限阻断，DABT 触发后内核根据发起访问的代码地址判断读取者身份——ART 运行时代码段注册为信任范围，信任读取者看到篡改后的 shadow 页，非信任读取者（反作弊扫描器）看到干净原始页。</p>
-<p>同页多条 ArtMethod 被 hook 时共享一个 shadow 页，通过增量 patch 管理。非信任代码对同页的写访问也需要特殊处理——内核在写完成后做差分同步，保证 hook 字段不被覆盖，非 hook 字段保持最新。</p>
-<p>ART hook 引擎（mako）是独立 SHARED lib，不静态链入 Daemon SO。Manager 开关启用时把路径推到 KPM 缓存，Daemon 首次调用 <code>artHook</code> 时 lazy load 进幽灵内存。mako 的跳板池也走幽灵内存（经适配层注入 <code>ghostMalloc(RWX)</code>），不引入 maps 可见区段。shorty 取值用反射 <code>Method.getReturnType</code> + <code>getParameterTypes</code> 自拼，不依赖 libart 内部符号。</p>
+<p>GhostHook 的 ART 路径采用 <strong>Shadow Data Page</strong> 管理 <code>entry_point</code>。原始 ArtMethod 数据页保留原始字段，shadow 副本保存 hook 后的入口；DABT 发生后，访问来源决定本次访问看到的页视图，ART 运行时代码读取 shadow 页，其余读取路径读取原始页。</p>
+<p>同页多条 ArtMethod 共享一张 shadow 页，并由增量 patch 管理。页内写入通过差分同步合并：hook 字段保持目标入口，其他字段跟随原始页更新。Shadow Data Page 复用 mm 级页表协调、并发访问和 TLB 一致性机制。</p>
+<p>ART hook 引擎（mako）是独立 SHARED lib，不静态链入 Daemon SO。Manager 开关启用时把路径推到 KPM 缓存，Daemon 首次调用 <code>artHook</code> 时 lazy load 进幽灵内存。mako 的跳板池也走幽灵内存（经适配层注入 <code>ghostMalloc(RWX)</code>），不引入常规 maps 区段。shorty 取值用反射 <code>Method.getReturnType</code> + <code>getParameterTypes</code> 自拼，不依赖 libart 内部符号。ArtMethod 字段布局、偏移和可用入口由 Android/ART 版本适配层管理，未匹配版本走失败降级。</p>
 <p>定位 Java 方法有两条路径：按 className + methodName + sig 走标准反射，或直接拿反射 <code>Method</code> 对象——后者跳过符号解析，适合 hook 隐藏 API 等不可经标准路径定位的方法。两条路径殊途同归，最终都落到 mako 的 ArtMethod 入口替换上。</p>
 <p>反射类加载的设计思路是预解析：在 daemon 初始化时把反射链句柄全部解析为全局缓存，fork 继承，后续调用时不再触发 JNI 查找，把开销压到最小。</p>
 <p>这里 mako hook 是我之前写的 art hook 框架, 选择用外挂加载的方式主要是考虑到两个原因:</p>
@@ -950,7 +956,7 @@
 </span></span><span style="display:flex;"><span>    copyPageToBuf(buf, ...)   // 读页内容
 </span></span><span style="display:flex;"><span>    mmput(mm)                  // 释放 mm 引用（必须配对！）
 </span></span><span style="display:flex;"><span>    return 0</span></span></code></pre></div></div>
-<p>这条路径也用于 Shadow Page 的跨进程读隐藏：GUP（get_user_pages）路径不一定经过目标进程当前 CPU 的 TLB，而是通过页表遍历拿物理页。因此 shadow 页在 GUP 前需要临时把 PTE 指向 original PFN，GUP 后恢复 shadow PFN，且不刷新执行核 TLB。</p>
+<p>这条路径也用于 Shadow Page 的跨进程读取：读事务在页表锁、mm 级同步和多 CPU 可见性协议保护下，临时将 PTE 指向 original PFN，完成 GUP 取页后恢复执行视图。TLB 刷新与保留策略由后端按目标内核、CPU 拓扑和访问时序实现。</p>
 
 <h3 class="relative group">VMA Dump
     <div id="vma-dump" class="anchor"></div>
@@ -995,7 +1001,7 @@
     </span>
     
 </h3>
-<p>Daemon 内置符号解析器，读 ELF <code>.dynsym</code> 解析符号地址。不走 <code>dl_iterate_phdr</code>——因为幽灵内存里的 SO 不在动态链接器的 link_map 里，<code>dl_iterate_phdr</code> 无法确定调用者上下文，返回 NULL。</p>
+<p>Daemon 内置符号解析器，读 ELF <code>.dynsym</code> 解析符号地址。不走 <code>dl_iterate_phdr</code>——幽灵内存中的 SO 不在动态链接器维护的 <code>link_map</code> 中，常规枚举不会包含它；因此需要自行维护加载模块与符号表信息。</p>
 <p>符号解析用于两条路径：Hook 定位（按 SO 名 + 符号名找地址）和 Trace 符号化（批量解析 PC 对应的 <code>{soName, sym, offset}</code> 映射表，随 trace 帧推送到 PC）。</p>
 <p>VMA 缓存经内核无痕读取，ELF 符号表缓存从磁盘文件解析一次后复用（优先全量符号表），排序后二分查找。</p>
 
@@ -1020,7 +1026,7 @@
     </span>
     
 </h3>
-<p>Zygote 注入的 Daemon + 跳板 + Shadow Page 全部是 VMA-less PTE，而内核的 <code>copy_page_range</code> 只遍历 VMA——<strong>VMA-less 的幽灵内存 / shadow PTE 会被静默丢弃</strong>。硬件断点寄存器是 per-CPU 的，fork 也不复制。因此子进程要&quot;继承&quot;这套无痕 Hook 能力，必须在 fork 路径上手动克隆。</p>
+<p>Zygote 注入的 Daemon、跳板和 Shadow Page 使用 VMA-less PTE。Fork 处理器将它们视为显式继承对象：在目标内核验证过的 fork 窗口内，为子进程恢复所需映射、运行状态和元数据。</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>kernel_clone
 </span></span><span style="display:flex;"><span>  └─ copy_process        ← 子进程 mm/页表已构造（VMA 复制完，但 VMA-less PTE 丢失）
 </span></span><span style="display:flex;"><span>     └─ wake_up_new_task(child)  ← KP hook 在此窗口安装子进程的 ghost PTE</span></span></code></pre></div></div>
@@ -1028,7 +1034,7 @@
 <ul>
 <li><strong>Ghost Mem</strong>：给子进程分配独立物理页 + 私有拷贝 + 逐页独立 PTE。必须私有——直接共享父进程物理页会导致子进程写 daemon 静态数据污染父进程。</li>
 <li><strong>Shadow Page</strong>：标记了 fork 传播的 hook 页克隆继承 shadow PTE；未标记的需暂停。</li>
-<li><strong>HWBP 规则</strong>：按 tgid 重注册子进程所有 TID 的断点。</li>
+<li><strong>HWBP 规则</strong>：按子进程的线程生命周期注册断点，并为每个 TID 维护独立状态和返回地址栈。</li>
 <li><strong>Instrument / Hook 元数据</strong>：拷贝页内 hook/instrument 元数据（受 fork 传播标志门控）。</li>
 </ul>
 <p>线程 clone（共享 mm）不需要克隆——只有新进程才需要安装 ghost 内存。</p>
@@ -1062,8 +1068,8 @@
     </span>
     
 </h3>
-<p>这两类拦截器都基于 Shadow Hook 实现，不修改 ArtMethod 字段、不引入 GOT trampoline、不在 maps 留可见区段——和框架其他 hook 能力保持一致的隐身性。</p>
-<p><strong>Binder Transact 拦截</strong>：思路是 shadow hook <code>transactNative</code> 的 native 函数地址（经 ArtMethod data 字段取址），在 transact 前后按 interface token 分发 before/after 回调。难点在于 Parcel 操作——读取 interface token 本身依赖 libbinder.so / libutils.so 的 native 函数，纯 JNI 做不到，需要封装一层 Parcel 工具来桥接。</p>
+<p>这两类拦截器都基于 Shadow Hook 实现，不引入 GOT trampoline。Binder 路径直接拦截 <code>transactNative</code> 的 native 入口；Linker 路径通过 Bionic 版本适配层解析可用 dlopen 入口。两者的映射可见性以常规 VMA 枚举为边界，页表及内核态观察路径纳入独立的安全评估。</p>
+<p><strong>Binder Transact 拦截</strong>：shadow hook <code>transactNative</code> 的 native 函数地址，在 transact 前后按 interface token 分发 before/after 回调。ART 适配层负责按版本定位 ArtMethod 与 native 入口，不将任何字段偏移视为稳定 ABI。读取 interface token 依赖 libbinder.so / libutils.so 的 native 函数，因此由一层 Parcel 工具桥接。</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>// 概念：Binder 事务拦截
 </span></span><span style="display:flex;"><span>function fakeTransactNative(data, reply, flags):
 </span></span><span style="display:flex;"><span>    token = readInterfaceToken(data)    // 经 Parcel 工具读取
@@ -1071,9 +1077,9 @@
 </span></span><span style="display:flex;"><span>    result = origTransact(data, reply, flags)
 </span></span><span style="display:flex;"><span>    result = dispatchAfter(token, result, data, reply)  // 可覆盖返回值
 </span></span><span style="display:flex;"><span>    return result</span></span></code></pre></div></div>
-<p>设计上只 hook client 侧——server 侧的 transact 是 C++ 虚函数，shadow hook 无法有效拦截 vtable dispatch。binder call log 作为可选开关，默认关闭，避免热路径开销。</p>
-<p><strong>Linker dlopen 拦截</strong>：思路类似，shadow hook linker 的 dlopen 内部入口，在 SO 加载前后按 lib name 子串匹配分发回调。</p>
-<p>两项能力均懒加载：首次调用才触发 init，per-process 独立，fork 后随 shadow PTE 继承。</p>
+<p>Binder 拦截当前覆盖 client 侧。服务端采用 C++ 虚函数分派，扩展服务端覆盖时需要解析具体实现目标或设置独立拦截点。binder call log 作为可选开关，默认关闭，避免热路径开销。</p>
+<p><strong>Linker dlopen 拦截</strong>：shadow hook linker 的可用 dlopen 入口，在 SO 加载前后按 lib name 子串匹配分发回调。内部符号名和调用链由 Bionic 版本适配层维护，未命中入口时该能力保持关闭。</p>
+<p>两项能力均懒加载：首次调用才触发 init，per-process 独立，fork 后由映射继承处理器恢复。</p>
 
 <h3 class="relative group">SO 早期生命周期 &amp; JNI Trace
     <div id="so-早期生命周期--jni-trace" class="anchor"></div>
@@ -1084,16 +1090,17 @@
     </span>
     
 </h3>
-<p>用户模块的 <code>ghostEntry</code> 在进程启动早期执行，但目标 SO 可能尚未加载。当 App 后续 <code>dlopen</code> 目标 SO 时，<code>.init</code>/<code>.init_array</code>/<code>JNI_OnLoad</code> 在 linker 的 <code>call_constructors</code> 中执行——这发生在 <code>dlopen</code> 返回之前，用户模块无法在构造函数执行前 hook。</p>
+<p>用户模块的 <code>ghostEntry</code> 在进程启动早期执行，目标 SO 则可能在后续才加载。SO 生命周期分为两段：ELF 的 <code>.init</code>/<code>.init_array</code> 由 linker 构造函数路径执行，<code>JNI_OnLoad</code> 由 ART 在 <code>dlopen</code> 返回后查找并调用。两段都位于 <code>System.loadLibrary</code> 的返回之前，框架为它们分别设置拦截点。</p>
 <div class="highlight-wrapper"><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>进程启动
 </span></span><span style="display:flex;"><span>  -&gt; daemon 加载用户 SO -&gt; ghostEntry(api)     ← simTraceStart 只能在这里或之后
 </span></span><span style="display:flex;"><span>  -&gt; App 代码执行
 </span></span><span style="display:flex;"><span>    -&gt; System.loadLibrary(&#34;libfoo.so&#34;)
 </span></span><span style="display:flex;"><span>      -&gt; dlopen -&gt; link -&gt; relocate
 </span></span><span style="display:flex;"><span>      -&gt; call_constructors                       ← .init / .init_array 在此执行
-</span></span><span style="display:flex;"><span>      -&gt; JNI_OnLoad                              ← 在 dlopen 返回前执行
+</span></span><span style="display:flex;"><span>      -&gt; dlopen 返回
+</span></span><span style="display:flex;"><span>      -&gt; ART 查找并调用 JNI_OnLoad
 </span></span><span style="display:flex;"><span>    -&gt; App 后续调用 libfoo.so 的函数             ← simTraceStart 在这里才能 findSymbol</span></span></code></pre></div></div>
-<p>解法是在 linker 的构造函数调用路径上下 shadow hook，目标 SO 加载时拦截 <code>.init</code>/<code>.init_array</code>/<code>JNI_OnLoad</code>。这里有个符号解析的坑：linker 内部符号不在 <code>.dynsym</code> 里，且幽灵内存环境 <code>dl_iterate_phdr</code> 不可用，只能扩展磁盘 ELF 全量符号表回退。</p>
+<p>Linker 构造函数路径和 ART 的 <code>JNI_OnLoad</code> 路径各自建立拦截点。linker/ART 内部符号及调用链由版本特征识别；幽灵内存中的 SO 不在 <code>dl_iterate_phdr</code> 的常规枚举范围内，符号解析器据此维护独立的模块记录，并在需要时回退到完整 ELF 符号表。</p>
 <p>JNI 动态注册的 trace 同理：JNIEnv 函数表中的 native 方法注册入口按固定偏移就能取到，无需解析 ART 内部符号，在注册时拦截匹配的方法即可 trace 其函数指针。</p>
 
 <h3 class="relative group">花指令对抗
@@ -1130,8 +1137,8 @@
     
 </h2>
 <p>这部分聊几个让人头疼的细节，给各位大佬省点时间。</p>
-<p><strong><code>vmap</code> 多页分配返回同一 PFN</strong></p>
-<p>幽灵内存分配最初用 <code>alloc_pages</code> + <code>vmap</code>，结果发现在某些内核版本上 <code>vmap</code> 对多页分配不装独立 PTE——所有页返回同一个 PFN，用户态多页映射互相覆盖，加载 ELF 时报 <code>missing DT_GNU_HASH</code>。最后改成 <code>vmalloc</code> 区分配，<code>vmalloc</code> 有独立 L3 PTE，<code>vmalloc_to_pfn</code> 逐页返回独立 PFN。<code>alloc_pages</code>+<code>vmap</code> 只留给了单页 fallback 场景。</p>
+<p><strong>多页 <code>vmap</code> 的页数组构造</strong></p>
+<p>多页幽灵内存使用 <code>alloc_pages</code> + <code>vmap</code> 时，页数组必须包含每一页对应的 <code>struct page</code>。<code>vmap</code> 按数组逐页建立内核虚拟映射；连续页分配需要正确展开每个 page 并逐页校验 PFN。一次 ELF 加载出现的 PFN 重复和 <code>missing DT_GNU_HASH</code>，最终定位为页数组/PFN 展开环节错误。当前实现使用 <code>vmalloc</code> 简化多页分配，并继续以 <code>vmalloc_to_pfn</code> 逐页校验映射结果。</p>
 <p><strong>跳板池化后的 cache 维护范围</strong></p>
 <p>早期每条跳板独占一整页 ghost 映射，浪费 87.5%~94% 物理页。改成每页 256B 切 16 槽的跳板池后，跳板 VA 不再页对齐。原有&quot;整页 DC CIVAC + IC IVAU&quot;如果以槽基为起点会越界刷到相邻映射。解法是所有 cache flush 范围改为按页对齐（刷整张池页，over-flush 相邻槽，注册非高频路径可接受）。</p>
 <p><strong>异常上下文中的锁</strong></p>
@@ -1139,7 +1146,7 @@
 <p><strong><code>mm_users</code> 引用泄漏</strong></p>
 <p>临时持有目标进程 <code>mm</code>（通过 <code>get_task_mm</code> 或等价内核符号）的代码，所有返回路径都必须 <code>mmput</code>。泄漏一个 <code>mm_users</code> 引用会阻止进程进入 <code>exit_mmap</code>，导致 ghost 映射无法清理，Android framework 在 SIGKILL 后仍认为旧 ProcessRecord 未死亡，后续启动被拒绝或卡 splash。这个排查起来非常非常非常非常非常非常非常痛苦&hellip;</p>
 <p><strong>Fork 克隆必须私有拷贝</strong></p>
-<p>子进程 fork 时，ghost 映射的 PTE 如果直接共享父进程物理页，子进程写 daemon 静态数据会污染父进程。必须给子进程分配独立的 <code>vmalloc</code> + <code>memcpy</code> + 逐页独立 PTE，不复用父 PTE。execve 场景走 <code>mmput_async</code>，<code>exit_mmap</code> hook 不触发，需要单独处理。</p>
+<p>子进程 fork 时，ghost 映射使用独立的 <code>vmalloc</code> + <code>memcpy</code> + 逐页 PTE，避免 daemon 静态数据跨进程共享。资源生命周期同时覆盖 fork、退出和 execve 的旧 mm 回收路径，并按目标 Android/Linux 内核调用链注册清理处理。</p>
 
 <h2 class="relative group">与传统方案的对比
     <div id="与传统方案的对比" class="anchor"></div>
@@ -1150,6 +1157,7 @@
     </span>
     
 </h2>
+<p>下表比较三类方案的实现路径与工程约束。可见性、完整性和并发性均由具体观察路径、目标内核及运行时版本共同决定。</p>
 <table>
   <thead>
       <tr>
@@ -1161,34 +1169,34 @@
   </thead>
   <tbody>
       <tr>
-          <td>内存篡改</td>
-          <td>改 <code>.text</code> 段字节</td>
-          <td>零篡改</td>
-          <td>零篡改</td>
+          <td>代码页处理</td>
+          <td>原始 <code>.text</code> 直接改写</td>
+          <td>保留原始代码页</td>
+          <td>original 页保留，shadow 页承载替换内容</td>
       </tr>
       <tr>
-          <td>CRC 校验</td>
-          <td>必被检测</td>
-          <td>免疫</td>
-          <td>免疫</td>
+          <td>完整性视图</td>
+          <td>读取和执行均为改写结果</td>
+          <td>读取和执行均为原始结果</td>
+          <td>读取视图为 original，执行视图为 shadow</td>
       </tr>
       <tr>
           <td>Hook 数量</td>
-          <td>无限</td>
-          <td>最多 6 个</td>
-          <td>无限（页级）</td>
+          <td>通常不受硬件槽位限制</td>
+          <td>由可用断点槽位决定</td>
+          <td>由页与元数据管理能力决定</td>
       </tr>
       <tr>
-          <td>maps 可见性</td>
-          <td>跳板暴露</td>
-          <td>无额外内存</td>
-          <td>幽灵内存，VMA-less</td>
+          <td>映射元数据</td>
+          <td>跳板映射可见</td>
+          <td>通常无额外映射</td>
+          <td>常规 VMA 枚举不包含 ghost 映射</td>
       </tr>
       <tr>
-          <td>并发安全</td>
-          <td>改指令瞬间有竞态</td>
-          <td>线程级安全</td>
-          <td>页级异常路由，天然安全</td>
+          <td>并发模型</td>
+          <td>修改窗口同步</td>
+          <td>TID 状态隔离</td>
+          <td>mm 级 PTE、TLB/cache 与异常状态协调</td>
       </tr>
       <tr>
           <td>工程门槛</td>
@@ -1197,64 +1205,64 @@
           <td>高（内核 + ARM64 指令集功底）</td>
       </tr>
       <tr>
-          <td>反调试对抗</td>
-          <td>无</td>
-          <td>易被 ptrace 检测</td>
-          <td>内核假账本欺骗</td>
+          <td>调试寄存器</td>
+          <td>不依赖</td>
+          <td>受调试设施与检测面影响</td>
+          <td>按目标内核维护调试寄存器状态</td>
       </tr>
       <tr>
           <td>ART Hook 入口</td>
-          <td>改 entry_point 指针</td>
-          <td>可用</td>
-          <td>不改指针，对指令地址下拦截</td>
+          <td>改 <code>entry_point</code> 指针</td>
+          <td>可用性取决于实现</td>
+          <td>Shadow Data Page 提供受控的入口视图</td>
       </tr>
       <tr>
           <td>Trace 能力</td>
           <td>无</td>
-          <td>无</td>
+          <td>有限的断点事件</td>
           <td>CPU 单步 + 仿真双模式</td>
       </tr>
       <tr>
           <td>跨进程读写</td>
-          <td>ptrace</td>
+          <td>常见实现使用 ptrace</td>
           <td>无</td>
           <td>内核页表遍历，不经 ptrace</td>
       </tr>
       <tr>
           <td>DEX 动态加载</td>
-          <td>不支持</td>
-          <td>不支持</td>
+          <td>取决于实现</td>
+          <td>取决于实现</td>
           <td>内存字节加载 DEX，不落盘</td>
       </tr>
       <tr>
           <td>Binder 拦截</td>
-          <td>GOT hook</td>
-          <td>不支持</td>
-          <td>Shadow Hook transactNative，零 ArtMethod 改动</td>
+          <td>常见实现使用 GOT hook</td>
+          <td>不适用</td>
+          <td>Shadow Hook <code>transactNative</code>，版本适配</td>
       </tr>
       <tr>
           <td>Linker 拦截</td>
-          <td>PLT hook</td>
-          <td>不支持</td>
-          <td>Shadow Hook dlopen_ext，maps 无可见区段</td>
+          <td>常见实现使用 PLT hook</td>
+          <td>不适用</td>
+          <td>Shadow Hook dlopen 入口，版本适配</td>
       </tr>
       <tr>
           <td>SO 早期 Trace</td>
-          <td>不支持</td>
-          <td>不支持</td>
-          <td>hook call_constructors + RegisterNatives</td>
+          <td>取决于注入时机</td>
+          <td>不适用</td>
+          <td>分别覆盖构造函数与 <code>JNI_OnLoad</code> 路径</td>
       </tr>
       <tr>
           <td>花指令对抗</td>
           <td>不支持</td>
           <td>不支持</td>
-          <td>仿真跟随 br 跳转 + junk bytes 标注</td>
+          <td>仿真跟随 <code>br</code> 跳转 + junk bytes 标注</td>
       </tr>
       <tr>
           <td>Fork 继承</td>
           <td>手动处理</td>
-          <td>不继承</td>
-          <td>四类对象 wake_up_new_task 手动克隆</td>
+          <td>不自动继承规则状态</td>
+          <td>fork 路径恢复映射和状态</td>
       </tr>
       <tr>
           <td>Daemon 热重载</td>
@@ -1266,7 +1274,7 @@
           <td>性能</td>
           <td>极快</td>
           <td>快</td>
-          <td>首次触发有微损，后续原生执行</td>
+          <td>异常与同步路径有额外开销，后续取决于实现</td>
       </tr>
   </tbody>
 </table>
@@ -1304,7 +1312,7 @@
 </h2>
 <p>这个项目从设计到实现断断续续搞了挺久，踩的坑远比上面写的多。</p>
 <p>内核态开发最大的痛苦不是逻辑复杂，而是调试成本——一个 PTE 属性位拼错了，手机直接黑屏重启，有时候 dmesg 提供的崩溃日志甚至无法定位</p>
-<p>但架构本身的设计哲学我觉得是有价值的：不是在用户态和反作弊玩猫鼠游戏，而是利用内核态的绝对权限，从物理层面做到&quot;踏雪无痕&quot;。传统 Hook 是在银行里挖坑埋地雷，GhostHook 是在天花板装红外线——东西没动过，但人一进来就触发了。</p>
+<p>这套架构的价值在于把原始页、shadow 页和访问路径分层管理。传统 Inline Hook 直接改写目标代码；Shadow Page 则以双页视图承载执行和读取。围绕页表同步、运行时版本适配与资源生命周期建立完整约束后，这种分层能够为 Hook、插桩和 Trace 提供统一的内核侧基础设施。</p>
 <p>项目还在持续迭代，后面有机会再聊聊更多细节。文中如果有描述不准确的地方，欢迎交流指正。</p>
 <p>最后配几张图, 祝各位大佬实现顺利 !!!</p>
 <p><figure><img
@@ -1372,14 +1380,14 @@
           
             <a
               class="flex text-neutral-700 hover:text-primary-600 dark:text-neutral dark:hover:text-primary-400"
-              href="/posts/dpt-byte-vmp-dex-protect/">
+              href="/posts/pixel-6-kernel-diy/">
               <span class="leading-6">
-                <span class="inline-block rtl:rotate-180">&larr;</span>&ensp;DPT+ByteVM 加固逆向分析
+                <span class="inline-block rtl:rotate-180">&larr;</span>&ensp;Arm64 Mac DIY Pixel 6 内核踩坑笔记
               </span>
             </a>
             
               <span class="ms-6 mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                <time datetime="2026-07-03T00:00:00&#43;00:00">July 3, 2026</time>
+                <time datetime="2026-05-24T00:00:00&#43;00:00">May 24, 2026</time>
               </span>
             
           

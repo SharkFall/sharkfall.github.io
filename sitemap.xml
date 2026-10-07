@@ -3,23 +3,19 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
   <url>
-    <loc>https://example.org/posts/ghost-hook-design/</loc>
+    <loc>https://sharkfall.github.io/posts/ghost-hook-design/</loc>
     <lastmod>2026-07-12T00:00:00+00:00</lastmod>
   </url>
   <url>
-    <loc>https://example.org/posts/</loc>
+    <loc>https://sharkfall.github.io/posts/</loc>
     <lastmod>2026-07-12T00:00:00+00:00</lastmod>
   </url>
   <url>
-    <loc>https://example.org/</loc>
+    <loc>https://sharkfall.github.io/</loc>
     <lastmod>2026-07-12T00:00:00+00:00</lastmod>
   </url>
   <url>
-    <loc>https://example.org/posts/dpt-byte-vmp-dex-protect/</loc>
-    <lastmod>2026-07-03T00:00:00+00:00</lastmod>
-  </url>
-  <url>
-    <loc>https://example.org/posts/pixel-6-kernel-diy/</loc>
+    <loc>https://sharkfall.github.io/posts/pixel-6-kernel-diy/</loc>
     <lastmod>2026-05-24T00:00:00+00:00</lastmod>
   </url>
 </urlset>
